@@ -4,83 +4,59 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orienteering Event Completion</title>
+    <title>Orienteering Event Manager Helper</title>
 </head>
 <body>
-    <form method="post" action="/api/mulka/generate-official-results" enctype="multipart/form-data">
+    <form method="post" action="/api/competition/generate-preperation-files" enctype="multipart/form-data">
+        <input type="button" id="more_si_boxes" onclick="add_fields();" value="Add SI Box" />
+    
+        <div id="si_boxes_details">
+             <div class='label'>SI Boxes:</div>
+             <div id="content">
+                 <span>First SI Card number: <input type="text" style="width:60px;" name="rangeStart[]" value="" /></span>
+                 <span>Last SI Card number: <input type="text" style="width:60px;" name="rangeEnd[]" value="" /></span>
+                 <span>Missing SI Card Numbers: <input type="text" style="width:60px;" name="missingCards[]" value="" /></span>
+             </div>
+         </div>
         <div>
-          <label for="file">Select Mulka Results CSV File</label>
-          <input type="file" id="file" name="mulkaResultsFile">
+          <label for="file3">Select ISOA start list files (csv + xlsx)</label>
+          <input type="file" id="file3" name="startlists" multiple>
+          {% if platform == "mulka" %}
+          <input type="hidden" id="platform" name="platform" value="mulka">
+          {% endif %}
+          {% if platform == "si-droid" %}
+          <input type="hidden" id="platform" name="platform" value="si-droid">
+          {% endif %}
         </div>
         <div>
-          <button>Generate Mulka Official Results file</button>
+          <button>Generate Competition Files</button>
         </div>
     </form>
-    <br />
-    <br />
-    <form method="post" action="/api/si-droid/generate-official-results" enctype="multipart/form-data">
-      <div>
-        <label for="file2">Select SI Droid Results XML File</label>
-        <input type="file" id="file2" name="siDroidResultsFile">
-      </div>
-      <div>
-        <button>Generate SI Droid Official Results file</button>
-      </div>
-    </form>
-    <br />
-    <br />
-    <form method="post" action="/api/mulka/generate-competition-files" enctype="multipart/form-data">
-      <input type="button" id="more_si_boxes_mulka" onclick="add_mulka_fields();" value="Add SI Box" />
-  
-      <div id="si_boxes_details_mulka">
-           <div class='label'>SI Boxes:</div>
-           <div id="mulkaContent">
-               <span>First SI Card number: <input type="text" style="width:60px;" name="rangeStartMulka[]" value="" /></span>
-               <span>Last SI Card number: <input type="text" style="width:60px;" name="rangeEndMulka[]" value="" /></span>
-               <span>Missing SI Card Numbers: <input type="text" style="width:60px;" name="missingCardsMulka[]" value="" /></span>
-           </div>
-       </div>
-      <div>
-        <label for="file3">Select ISOA start list files (csv + xlsx)</label>
-        <input type="file" id="file3" name="startlists" multiple>
-      </div>
-      <div>
-        <button>Generate Mulka Competition Files</button>
-      </div>
-    </form>
-    <br />
-    <br />
-    <form method="post" action="/api/si-droid/generate-competition-files" enctype="multipart/form-data">
-      <input type="button" id="more_si_boxes_si_droid" onclick="add_si_droid_fields();" value="Add SI Box" />
-  
-      <div id="si_boxes_details_si_droid">
-           <div class='label'>SI Boxes:</div>
-           <div id="siDroidContent">
-               <span>First SI Card number: <input type="text" style="width:60px;" name="rangeStartSIDroid[]" value="" /></span>
-               <span>Last SI Card number: <input type="text" style="width:60px;" name="rangeEndSIDroid[]" value="" /></span>
-               <span>Missing SI Card Numbers: <input type="text" style="width:60px;" name="missingCardsSIDroid[]" value="" /></span>
-           </div>
-       </div>
-      <div>
-
-      <div>
-        <label for="file4">Select ISOA start list files (csv + xlsx)</label>
-        <input type="file" id="file4" name="si_droid_startlists" multiple>
-      </div>
-      <div>
-        <button>Generate SI Droid Competition Files</button>
-      </div>
+    <form method="post" action="/api/competition/generate-isoa-results-file" enctype="multipart/form-data">
+        <div>
+          {% if platform == "mulka" %}
+          <label for="file">Select Mulka Results File (CSV)</label>
+          {% endif %}
+          {% if platform == "si-droid" %}
+          <label for="file">Select SI Droid Results File (XML)</label>
+          {% endif %}
+          <input type="file" id="file" name="resultsFile">
+          {% if platform == "mulka" %}
+          <input type="hidden" id="platform" name="platform" value="mulka">
+          {% endif %}
+          {% if platform == "si-droid" %}
+          <input type="hidden" id="platform" name="platform" value="si-droid">
+          {% endif %}
+        </div>
+        <div>       
+          <button>Generate Results file</button>
+        </div>
     </form>
     <script>
-      function add_mulka_fields() {
-        var d = document.getElementById("mulkaContent");
+      function add_fields() {
+        var d = document.getElementById("content");
   
-        d.innerHTML += "<br /><span>First SI Card number: <input type='text' style='width:60px;' name='rangeStartMulka[]' value='' /></span><span> Last SI Card number: <input type='text' style='width:60px' name='rangeEndMulka[]' value='' /></span><span> Missing SI Card Numbers: <input type='text' style='width:60px;' name='missingCardsMulka[]' value='' /></span>";
-      }
-      function add_si_droid_fields() {
-        var d = document.getElementById("siDroidContent");
-  
-        d.innerHTML += "<br /><span>First SI Card number: <input type='text' style='width:60px;' name='rangeStartSIDroid[]' value='' /></span><span> Last SI Card number: <input type='text' style='width:60px' name='rangeEndSIDroid[]' value='' /></span><span> Missing SI Card Numbers: <input type='text' style='width:60px;' name='missingCardsSIDroid[]' value='' /></span>";
+        d.innerHTML += "<br /><span>First SI Card number: <input type='text' style='width:60px;' name='rangeStart[]' value='' /></span><span> Last SI Card number: <input type='text' style='width:60px' name='rangeEnd[]' value='' /></span><span> Missing SI Card Numbers: <input type='text' style='width:60px;' name='missingCards[]' value='' /></span>";
       }
     </script>
 </body>
