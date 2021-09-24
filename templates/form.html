@@ -5,22 +5,44 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Orienteering Event Manager Helper</title>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet">
+    <link rel="stylesheet" href="../static/form.css">
 </head>
 <body>
-    <form method="post" action="/api/competition/generate-preperation-files" enctype="multipart/form-data">
-        <input type="button" id="more_si_boxes" onclick="add_fields();" value="Add SI Box" />
-    
-        <div id="si_boxes_details">
-             <div class='label'>SI Boxes:</div>
-             <div id="content">
-                 <span>First SI Card number: <input type="text" style="width:60px;" name="rangeStart[]" value="" /></span>
-                 <span>Last SI Card number: <input type="text" style="width:60px;" name="rangeEnd[]" value="" /></span>
-                 <span>Missing SI Card Numbers: <input type="text" style="width:60px;" name="missingCards[]" value="" /></span>
-             </div>
+  <div class="tabs">
+    <input type="radio" name="tabs" id="tabone" checked="checked">
+    <label class="tabsLabel" for="tabone">הכנת תחרות</label>
+    <div class="tab">
+      <form method="post" action="/api/competition/generate-preperation-files" enctype="multipart/form-data">
+        <div id="siBoxesDetailsContainer">
+             <div class='label' style="direction: rtl;">הזן פרטי מזוודות SI</div>
+             <div id="siBoxesDetails">
+              <div class="siBoxRow">
+                <div class="boxIconContainerDiv">
+                  <i class="fa fa-suitcase"></i>
+                </div>
+                <div class="siBoxDetailsContainer">
+                  <input type="text" class="form-control" name="rangeStart[]" placeholder="מס' SI ראשון" value="" style="flex-grow: 1;">
+                  <input type="text" class="form-control" name="rangeEnd[]" placeholder="מס' SI אחרון" value="" style="flex-grow: 1;">
+                  <input type="text" class="form-control" name="missingCards[]" placeholder="מס' SI חסרים (לדוגמה: 2071000,2071050)" value="" style="flex-grow: 9;">
+                </div>
+                <a class="btn-remove" onclick='remove_si_box(this)'><i class="fa fa-times"></i></a>
+              </div>
+            </div>
+            <div id="newBoxButtonContainerDiv">
+              <a class="underline" onclick='add_si_box()'><i class="fa fa-plus"></i> הוסף מזוודה</a>
+            </div>
+            
          </div>
-        <div>
-          <label for="file3">Select ISOA start list files (csv + xlsx)</label>
+         <hr />
+        <div style="direction: rtl;">הכנס קבצי משתתפים מאתר האיגוד בפורמט csv ו-xlsx</div>
+        <div class="file-upload-container-div">
           <input type="file" id="file3" name="startlists" multiple>
+          <label class="file-upload-label" for="file3">
+            <i class="fa fa-download" aria-hidden="true"></i>
+            <span class="file-upload-btn">בחר קבצים</span>
+          </label>
           {% if platform == "mulka" %}
           <input type="hidden" id="platform" name="platform" value="mulka">
           {% endif %}
@@ -28,19 +50,29 @@
           <input type="hidden" id="platform" name="platform" value="si-droid">
           {% endif %}
         </div>
-        <div>
-          <button>Generate Competition Files</button>
+        <hr />
+        <div style="text-align: center;">
+          <button>הפק קבצי הכנה לתחרות</button>
         </div>
-    </form>
-    <form method="post" action="/api/competition/generate-isoa-results-file" enctype="multipart/form-data">
-        <div>
-          {% if platform == "mulka" %}
-          <label for="file">Select Mulka Results File (CSV)</label>
-          {% endif %}
-          {% if platform == "si-droid" %}
-          <label for="file">Select SI Droid Results File (XML)</label>
-          {% endif %}
-          <input type="file" id="file" name="resultsFile">
+      </form>
+    </div>
+    
+    <input type="radio" name="tabs" id="tabtwo">
+    <label class="tabsLabel" for="tabtwo">הפקת תוצאות רשמיות</label>
+    <div class="tab">
+      <form method="post" action="/api/competition/generate-isoa-results-file" enctype="multipart/form-data">
+        {% if platform == "mulka" %}
+          <div style="direction: rtl;">הזן קובץ תוצאות של Mulka בפורמט CSV</div>
+        {% endif %}
+        {% if platform == "si-droid" %}
+          <div style="direction: rtl;">הזן קובץ תוצאות של SI-Droid בפורמט XML</div>
+        {% endif %}
+        <div class="file-upload-container-div">
+          <input type="file" id="file3" name="resultsFile">
+          <label class="file-upload-label" for="file3">
+            <i class="fa fa-download" aria-hidden="true"></i>
+            <span class="file-upload-btn">בחר קובץ</span>
+          </label>
           {% if platform == "mulka" %}
           <input type="hidden" id="platform" name="platform" value="mulka">
           {% endif %}
@@ -48,15 +80,28 @@
           <input type="hidden" id="platform" name="platform" value="si-droid">
           {% endif %}
         </div>
-        <div>       
-          <button>Generate Results file</button>
+        <hr />
+        <div style="text-align: center;">       
+          <button>הפק קובץ תוצאות</button>
         </div>
-    </form>
+      </form>
+    </div>
+  </div>
     <script>
-      function add_fields() {
-        var d = document.getElementById("content");
-  
-        d.innerHTML += "<br /><span>First SI Card number: <input type='text' style='width:60px;' name='rangeStart[]' value='' /></span><span> Last SI Card number: <input type='text' style='width:60px' name='rangeEnd[]' value='' /></span><span> Missing SI Card Numbers: <input type='text' style='width:60px;' name='missingCards[]' value='' /></span>";
+      function add_si_box() {
+        var div = document.getElementById("siBoxesDetails");
+        div.insertAdjacentHTML('beforeend', "<div class='siBoxRow'><div class='boxIconContainerDiv'><i class='fa fa-suitcase'></i></div><div class='siBoxDetailsContainer'><input type='text' class='form-control' name='rangeStart[]' placeholder=\"מס\' SI ראשון\" value='' style='flex-grow: 1;'><input type='text' class='form-control' name='rangeEnd[]' placeholder=\"מס\' SI אחרון\" value='' style='flex-grow: 1;'><input type='text' class='form-control' name='missingCards[]' placeholder=\"מס\' SI חסרים (לדוגמה: 2071000,2071050)\" value='' style='flex-grow: 9;'></div><a class='btn-remove' onclick='remove_si_box(this)'><i class='fa fa-times'></i></a></div>")
+      }
+      function remove_si_box(elem) {
+        var div = document.getElementById("siBoxesDetails");
+        if(div.children.length>1)  {
+          elem.parentNode.remove();
+        } else{
+          var r = confirm("בלי נתוני מזוודות לא תתבצע הקצאה אוטומטית של כרטיסי SI");
+          if (r == true) {
+            elem.parentNode.remove();
+          }
+        } 
       }
     </script>
 </body>

@@ -1,5 +1,4 @@
-from flask import Blueprint, url_for, request, abort, render_template, send_file
-from numpy.core.arrayprint import printoptions
+from flask import Blueprint, request, abort, send_file
 from werkzeug.utils import secure_filename
 from operator import itemgetter
 from zipfile import ZipFile
@@ -482,29 +481,30 @@ def generate_preperation_files():
         with tempfile.TemporaryDirectory() as tmpdir:
             csv_startlist_file.save(os.path.join(tmpdir, "isoa_startlist.csv"))
             csv_startlist_list, excel_startlist_list = read_startlist_files_to_list(csv_startlist_file, excel_startlist_file, tmpdir)
-            # Allocate SI cards and output renders list, exceptionals list
-            si_renders_list, exceptional_list = allocate_si_cards(csv_startlist_list, excel_startlist_list, available_si_card_numbers_for_rent)
-            
-            # Write SI rental list
-            si_rental_workbook = xlsxwriter.Workbook(os.path.join(tmpdir,'השאלת_כרטיסי_SI.xlsx'))
-            populate_si_rental_worksheets(si_rental_workbook, si_boxes_ranges, missing_si_card_numbers, si_renders_list)
-            si_rental_workbook.close()
+            if len(available_si_card_numbers_for_rent) > 0:
+                # Allocate SI cards and output renders list, exceptionals list
+                si_renders_list, exceptional_list = allocate_si_cards(csv_startlist_list, excel_startlist_list, available_si_card_numbers_for_rent)
+
+                # Write SI rental list
+                si_rental_workbook = xlsxwriter.Workbook(os.path.join(tmpdir,'השאלת_כרטיסי_SI.xlsx'))
+                populate_si_rental_worksheets(si_rental_workbook, si_boxes_ranges, missing_si_card_numbers, si_renders_list)
+                si_rental_workbook.close()
+
+                # Write exceptional list
+                with open(os.path.join(tmpdir,"חריגים.csv"), 'w', newline='', encoding="cp1255") as exceptionals_file:
+                    exceptionals_writer = csv.writer(exceptionals_file)
+                    headers_row = ["מס' חבר/ת.ז.", "שם", "מועדון", "מסלול", "טלפון", "חריגה"]
+                    exceptionals_writer.writerow(headers_row)
+                    # Write new start list to CSV
+                    for row in exceptional_list:
+                        exceptional_competitor_row = [row[0], row[1], row[2], row[3], row[10], row[11]]
+                        exceptionals_writer.writerow(exceptional_competitor_row)
 
             # Write Start list sheets
             start_list_workbook = xlsxwriter.Workbook(os.path.join(tmpdir,'רשימות_זינוק_למזניקים.xlsx'))
             populate_start_list_worksheets(start_list_workbook, csv_startlist_list)
             start_list_workbook.close()
 
-            # Write exceptional list
-            with open(os.path.join(tmpdir,"חריגים.csv"), 'w', newline='', encoding="cp1255") as exceptionals_file:
-                exceptionals_writer = csv.writer(exceptionals_file)
-                headers_row = ["מס' חבר/ת.ז.", "שם", "מועדון", "מסלול", "טלפון", "חריגה"]
-                exceptionals_writer.writerow(headers_row)
-                # Write new start list to CSV
-                for row in exceptional_list:
-                    exceptional_competitor_row = [row[0], row[1], row[2], row[3], row[10], row[11]]
-                    exceptionals_writer.writerow(exceptional_competitor_row)
-            
             # Allocate strangers start number
             STRANGERS_START_NUMBER = 20000
 
@@ -539,7 +539,10 @@ def generate_preperation_files():
              # writing files to a zipfile
             with ZipFile(os.path.join(tmpdir,'competition_files.zip'),'w') as zip:
                 # writing each file one by one
-                file_paths = [os.path.join(tmpdir,"start_list.csv"), os.path.join(tmpdir,'רשימות_זינוק_למזניקים.xlsx'), os.path.join(tmpdir,'השאלת_כרטיסי_SI.xlsx'), os.path.join(tmpdir,"חריגים.csv")]
+                if len(available_si_card_numbers_for_rent) > 0:
+                    file_paths = [os.path.join(tmpdir,"start_list.csv"), os.path.join(tmpdir,'רשימות_זינוק_למזניקים.xlsx'), os.path.join(tmpdir,'השאלת_כרטיסי_SI.xlsx'), os.path.join(tmpdir,"חריגים.csv")]
+                else:
+                    file_paths = [os.path.join(tmpdir,"start_list.csv"), os.path.join(tmpdir,'רשימות_זינוק_למזניקים.xlsx')]
                 for file in file_paths:
                     zip.write(file, os.path.basename(file))
 
