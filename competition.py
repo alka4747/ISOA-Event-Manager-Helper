@@ -40,7 +40,9 @@ def validate_si_rent_data_user_input(si_boxes_range_starts, si_boxes_range_endin
     missing_si_card_numbers = []
     si_boxes_ranges = []
     all_si_card_numbers = []
-    for i in range(len(si_boxes_range_starts)):    
+    for i in range(len(si_boxes_range_starts)):
+        if not si_boxes_range_starts[i].isdigit() or not si_boxes_range_endings[i].isdigit():
+            abort(400)
         # range start has to be smaller or equal to range end (one SI card is legal)
         if int(si_boxes_range_starts[i]) > int(si_boxes_range_endings[i]):
             abort(400)
@@ -48,6 +50,8 @@ def validate_si_rent_data_user_input(si_boxes_range_starts, si_boxes_range_endin
         # missing si card numbers has to be within SI box card number range
         if missing_si_card_numbers_in_boxes[i] != "":
             for si_card_number in missing_si_card_numbers_in_boxes[i].replace(" ", "").split(","):
+                if not si_card_number.isdigit():
+                    abort(400)
                 if int(si_card_number) not in [*range(int(si_boxes_range_starts[i]), (int(si_boxes_range_endings[i])+1))]:
                     abort(400)
                 missing_si_card_numbers.append(int(si_card_number))
@@ -64,9 +68,7 @@ def read_startlist_files_to_list(csv_file, excel_file, directory):
         excel_startlist_list = df.values.tolist()
         return sorted(list(csv_reader)[1:], key=itemgetter(1)), sorted(excel_startlist_list, key=itemgetter(1))
 
-def allocate_si_cards(csv_statlist_list, excel_startlist_list, available_si_card_numbers_for_rent):
-    si_number_index = 0
-    si_renders_list = []
+def get_exceptional_list(csv_statlist_list, excel_startlist_list):
     exceptional_list = []
     for index in range(len(csv_statlist_list)):
         if excel_startlist_list[index][10] == "True":
@@ -74,18 +76,25 @@ def allocate_si_cards(csv_statlist_list, excel_startlist_list, available_si_card
                 exceptional_competitor = csv_statlist_list[index]
                 exceptional_competitor.append("שכר כרטיס אלקטרוני אבל נרשם לעממי")
                 exceptional_list.append(exceptional_competitor)
+        else:
+            if csv_statlist_list[index][3] != "עממי" and (csv_statlist_list[index][5] == "" or csv_statlist_list[index][5] == "0"):
+                exceptional_competitor = csv_statlist_list[index]
+                exceptional_competitor.append("נרשם לתחרותי אבל ללא כרטיס אלקטרוני")
+                exceptional_list.append(exceptional_competitor)
+    return exceptional_list
+
+def allocate_si_cards(csv_statlist_list, excel_startlist_list, available_si_card_numbers_for_rent):
+    si_number_index = 0
+    si_renders_list = []
+    for index in range(len(csv_statlist_list)):
+        if excel_startlist_list[index][10] == "True":
             # Allocate SI number
             csv_statlist_list[index][5] = str(available_si_card_numbers_for_rent[si_number_index])
             si_renders_list.append(csv_statlist_list[index])
             si_number_index += 1
             if si_number_index > len(available_si_card_numbers_for_rent):
                 raise Exception("No more SI numbers to allocate")
-        else:
-            if csv_statlist_list[index][3] != "עממי" and (csv_statlist_list[index][5] == "" or csv_statlist_list[index][5] == "0"):
-                exceptional_competitor = csv_statlist_list[index]
-                exceptional_competitor.append("נרשם לתחרותי אבל ללא כרטיס אלקטרוני")
-                exceptional_list.append(exceptional_competitor)
-    return si_renders_list, exceptional_list
+    return si_renders_list
 
 def populate_si_rental_worksheets(excel_workbook, number_ranges_list, missing_numbers, renders_list):
     worksheets_list = []
@@ -453,7 +462,6 @@ def save_si_droid_official_results_to_csv(xml_data, file_name):
         writer.writerow(xml_data["headers"])
         # write punch data
         for competitor_data in xml_data["competitors_data"]:
-            print(competitor_data.values())
             writer.writerow(competitor_data.values())
     return csvfile
 
@@ -483,22 +491,24 @@ def generate_preperation_files():
             csv_startlist_list, excel_startlist_list = read_startlist_files_to_list(csv_startlist_file, excel_startlist_file, tmpdir)
             if len(available_si_card_numbers_for_rent) > 0:
                 # Allocate SI cards and output renders list, exceptionals list
-                si_renders_list, exceptional_list = allocate_si_cards(csv_startlist_list, excel_startlist_list, available_si_card_numbers_for_rent)
+                si_renders_list = allocate_si_cards(csv_startlist_list, excel_startlist_list, available_si_card_numbers_for_rent)
 
                 # Write SI rental list
                 si_rental_workbook = xlsxwriter.Workbook(os.path.join(tmpdir,'השאלת_כרטיסי_SI.xlsx'))
                 populate_si_rental_worksheets(si_rental_workbook, si_boxes_ranges, missing_si_card_numbers, si_renders_list)
                 si_rental_workbook.close()
 
-                # Write exceptional list
-                with open(os.path.join(tmpdir,"חריגים.csv"), 'w', newline='', encoding="cp1255") as exceptionals_file:
-                    exceptionals_writer = csv.writer(exceptionals_file)
-                    headers_row = ["מס' חבר/ת.ז.", "שם", "מועדון", "מסלול", "טלפון", "חריגה"]
-                    exceptionals_writer.writerow(headers_row)
-                    # Write new start list to CSV
-                    for row in exceptional_list:
-                        exceptional_competitor_row = [row[0], row[1], row[2], row[3], row[10], row[11]]
-                        exceptionals_writer.writerow(exceptional_competitor_row)
+            # Write exceptional list
+            exceptional_list = get_exceptional_list(csv_startlist_list, excel_startlist_list)
+           
+            with open(os.path.join(tmpdir,"חריגים.csv"), 'w', newline='', encoding="cp1255") as exceptionals_file:
+                exceptionals_writer = csv.writer(exceptionals_file)
+                headers_row = ["מס' חבר/ת.ז.", "שם", "מועדון", "מסלול", "טלפון", "חריגה"]
+                exceptionals_writer.writerow(headers_row)
+                # Write new start list to CSV
+                for row in exceptional_list:
+                    exceptional_competitor_row = [row[0], row[1], row[2], row[3], row[10], row[11]]
+                    exceptionals_writer.writerow(exceptional_competitor_row)
 
             # Write Start list sheets
             start_list_workbook = xlsxwriter.Workbook(os.path.join(tmpdir,'רשימות_זינוק_למזניקים.xlsx'))
@@ -542,7 +552,7 @@ def generate_preperation_files():
                 if len(available_si_card_numbers_for_rent) > 0:
                     file_paths = [os.path.join(tmpdir,"start_list.csv"), os.path.join(tmpdir,'רשימות_זינוק_למזניקים.xlsx'), os.path.join(tmpdir,'השאלת_כרטיסי_SI.xlsx'), os.path.join(tmpdir,"חריגים.csv")]
                 else:
-                    file_paths = [os.path.join(tmpdir,"start_list.csv"), os.path.join(tmpdir,'רשימות_זינוק_למזניקים.xlsx')]
+                    file_paths = [os.path.join(tmpdir,"start_list.csv"), os.path.join(tmpdir,'רשימות_זינוק_למזניקים.xlsx'), os.path.join(tmpdir,"חריגים.csv")]
                 for file in file_paths:
                     zip.write(file, os.path.basename(file))
 

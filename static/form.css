@@ -196,6 +196,55 @@ input[type="file"] {
     border-color: #454cad;
 }
 
+.button {
+  display: inline-block;
+  border-radius: 1rem;
+  background-color: #f4511e;
+  border: none;
+  color: #FFFFFF;
+  text-align: center;
+  padding: 1rem;
+  width: 13rem;
+  transition: all 0.5s;
+  cursor: pointer;
+  margin: 0.25rem;
+  font-weight: bold;
+}
+
+.button span {
+  cursor: pointer;
+  display: inline-block;
+  position: relative;
+  transition: 0.5s;
+}
+
+.button span:after {
+  content: '\00ab';
+  position: absolute;
+  opacity: 0;
+  top: 0;
+  right: -20px;
+  transition: 0.5s;
+}
+
+.button:hover span {
+  padding-right: 25px;
+}
+
+.button:hover span:after {
+  opacity: 1;
+  right: 0;
+}
+
+.uploadMsg {
+  margin:0;
+  direction: rtl;
+}
+
+.error-msg {
+  display: none;
+  color: red;
+}
 
 @media (max-width: 45em) {
   body {
