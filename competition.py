@@ -13,28 +13,20 @@ import datetime
 
 competition = Blueprint('competition', __name__)
 
-ALLOWED_STARTLIST_FILE_EXTENSIONS = [".csv", ".xlsx"]
+ALLOWED_STARTLIST_FILE_EXTENSIONS = [".xlsx"]
 ALLOWED_MULKA_RESULTS_FILE_EXTENSIONS = [".csv"]
 ALLOWED_SI_DROID_RESULTS_FILE_EXTENSIONS = [".xml"]
 
-def validate_startlist_files_user_input(startlist_files_list):
-    # User has to input 2 files exactly
-    if len(startlist_files_list) != 2:
-        abort(400)
-    for startlist_file in startlist_files_list:
-        filename = secure_filename(startlist_file.filename)
-        # filename has to be valid, and with the right file extension
-        if filename != '':
-            file_ext = os.path.splitext(filename)[1]
-            if file_ext not in ALLOWED_STARTLIST_FILE_EXTENSIONS:
-                abort(400)
-            if file_ext == ".csv":
-                csv_startlist_file = startlist_file
-            else:
-                excel_startlist_file = startlist_file
-        else:
+def validate_startlist_files_user_input(startlist_file):
+    filename = secure_filename(startlist_file.filename)
+    # filename has to be valid, and with the right file extension
+    if filename != '':
+        file_ext = os.path.splitext(filename)[1]
+        if file_ext not in ALLOWED_STARTLIST_FILE_EXTENSIONS:
             abort(400)
-    return csv_startlist_file, excel_startlist_file
+    else:
+        abort(400)
+    return startlist_file
 
 def validate_si_rent_data_user_input(si_boxes_range_starts, si_boxes_range_endings, missing_si_card_numbers_in_boxes):
     missing_si_card_numbers = []
@@ -60,37 +52,40 @@ def validate_si_rent_data_user_input(si_boxes_range_starts, si_boxes_range_endin
     available_si_card_numbers_for_rent = list(filter(lambda el: el not in missing_si_card_numbers, all_si_card_numbers))
     return si_boxes_ranges, missing_si_card_numbers, available_si_card_numbers_for_rent
 
-def read_startlist_files_to_list(csv_file, excel_file, directory):
-    with open(os.path.join(directory, "isoa_startlist.csv"), encoding="utf8") as csv_file:
-        # Read files
-        csv_reader = csv.reader(csv_file)
-        df = pd.read_excel(excel_file, dtype=str)
-        excel_startlist_list = df.values.tolist()
-        return sorted(list(csv_reader)[1:], key=itemgetter(1)), sorted(excel_startlist_list, key=itemgetter(1))
+def read_startlist_file_to_list(excel_file):
+    df = pd.read_excel(excel_file, dtype=str)
+    df.fillna('', inplace=True)
+    excel_startlist_list = df.values.tolist()
+    return sorted(excel_startlist_list, key=itemgetter(1))
 
-def get_exceptional_list(csv_statlist_list, excel_startlist_list):
+def get_exceptional_list(startlist_list):
     exceptional_list = []
-    for index in range(len(csv_statlist_list)):
-        if excel_startlist_list[index][10] == "True":
-            if csv_statlist_list[index][3] == "עממי":
-                exceptional_competitor = csv_statlist_list[index]
+    for index in range(len(startlist_list)):
+        if startlist_list[index][10] == "True":
+            if startlist_list[index][3] == "עממי":
+                exceptional_competitor = startlist_list[index]
                 exceptional_competitor.append("שכר כרטיס אלקטרוני אבל נרשם לעממי")
                 exceptional_list.append(exceptional_competitor)
         else:
-            if csv_statlist_list[index][3] != "עממי" and (csv_statlist_list[index][5] == "" or csv_statlist_list[index][5] == "0"):
-                exceptional_competitor = csv_statlist_list[index]
+            if startlist_list[index][3] != "עממי" and (startlist_list[index][6] == "" or startlist_list[index][6] == "0"):
+                exceptional_competitor = startlist_list[index]
                 exceptional_competitor.append("נרשם לתחרותי אבל ללא כרטיס אלקטרוני")
                 exceptional_list.append(exceptional_competitor)
+            if startlist_list[index][9] != "":
+                exceptional_competitor = startlist_list[index]
+                exceptional_competitor.append("רשם הערה בעת ההרשמה לתחרות")
+                exceptional_list.append(exceptional_competitor)
+    exceptional_list = sorted(exceptional_list, key=itemgetter(15))
     return exceptional_list
 
-def allocate_si_cards(csv_statlist_list, excel_startlist_list, available_si_card_numbers_for_rent):
+def allocate_si_cards(startlist_list, available_si_card_numbers_for_rent):
     si_number_index = 0
     si_renders_list = []
-    for index in range(len(csv_statlist_list)):
-        if excel_startlist_list[index][10] == "True":
+    for index in range(len(startlist_list)):
+        if startlist_list[index][10] == "True":
             # Allocate SI number
-            csv_statlist_list[index][5] = str(available_si_card_numbers_for_rent[si_number_index])
-            si_renders_list.append(csv_statlist_list[index])
+            startlist_list[index][6] = str(available_si_card_numbers_for_rent[si_number_index])
+            si_renders_list.append(startlist_list[index])
             si_number_index += 1
             if si_number_index > len(available_si_card_numbers_for_rent)-1:
                 break
@@ -184,10 +179,10 @@ def populate_si_rental_worksheets(excel_workbook, number_ranges_list, missing_nu
                 worksheet.write('F' + str(si_numbers_row_index), "", text_format)
                 worksheet.write('G' + str(si_numbers_row_index), "", text_format)
                 for render in renders_list:
-                    if render[5] == str(si_number):
+                    if render[6] == str(si_number):
                         worksheet.write('B' + str(si_numbers_row_index), str(render[0]), text_format)
                         worksheet.write('C' + str(si_numbers_row_index), str(render[1]), text_format)
-                        worksheet.write('D' + str(si_numbers_row_index), str(render[10]), text_format)
+                        worksheet.write('D' + str(si_numbers_row_index), str(render[14]), text_format)
                         worksheet.write('E' + str(si_numbers_row_index), "", text_format)
                         worksheet.write('F' + str(si_numbers_row_index), "", text_format)
                         worksheet.write('G' + str(si_numbers_row_index), "", text_format)
@@ -196,7 +191,7 @@ def populate_si_rental_worksheets(excel_workbook, number_ranges_list, missing_nu
         index += 1
     return worksheets_list
 
-def populate_start_list_worksheets(excel_workbook, registration_csv_list):
+def populate_start_list_worksheets(excel_workbook, registration_file_list):
     headers_format = excel_workbook.add_format({
         'border': 1,
         'font_name': 'Liberation Sans',
@@ -243,17 +238,17 @@ def populate_start_list_worksheets(excel_workbook, registration_csv_list):
     all_competitors_worksheet.write('G2', "", text_format)
 
     competitor_index = 3
-    for competitor in registration_csv_list:
+    for competitor in registration_file_list:
         all_competitors_worksheet.write('A' + str(competitor_index), competitor[0], text_format)
         all_competitors_worksheet.write('B' + str(competitor_index), competitor[1], text_format)
         all_competitors_worksheet.write('C' + str(competitor_index), competitor[2], text_format)
         all_competitors_worksheet.write('D' + str(competitor_index), competitor[3], text_format)
-        all_competitors_worksheet.write('E' + str(competitor_index), competitor[5], text_format)
-        all_competitors_worksheet.write('F' + str(competitor_index), competitor[10], text_format)
+        all_competitors_worksheet.write('E' + str(competitor_index), competitor[6], text_format)
+        all_competitors_worksheet.write('F' + str(competitor_index), competitor[14], text_format)
         all_competitors_worksheet.write('G' + str(competitor_index), "", text_format)
         competitor_index += 1
 
-    sorted_competitor_list_by_classes = get_sorted_competitor_list_by_classes(registration_csv_list)
+    sorted_competitor_list_by_classes = get_sorted_competitor_list_by_classes(registration_file_list)
     for course in sorted_competitor_list_by_classes:
         if course != "עממי":
             worksheet = excel_workbook.add_worksheet(course)
@@ -293,8 +288,8 @@ def populate_start_list_worksheets(excel_workbook, registration_csv_list):
                 worksheet.write('C' + str(competitor_index), competitor[1], text_format)
                 worksheet.write('D' + str(competitor_index), competitor[2], text_format)
                 worksheet.write('E' + str(competitor_index), competitor[3], text_format)
-                worksheet.write('F' + str(competitor_index), competitor[5], text_format)
-                worksheet.write('G' + str(competitor_index), competitor[10], text_format)
+                worksheet.write('F' + str(competitor_index), competitor[6], text_format)
+                worksheet.write('G' + str(competitor_index), competitor[14], text_format)
                 worksheet.write('H' + str(competitor_index), "", text_format)
                 competitor_index += 1
 
@@ -340,7 +335,7 @@ def populate_start_list_worksheets(excel_workbook, registration_csv_list):
                 worksheet.write('B' + str(competitor_index), competitor[1], text_format)
                 worksheet.write('C' + str(competitor_index), competitor[2], text_format)
                 worksheet.write('D' + str(competitor_index), "", text_format)
-                worksheet.write('E' + str(competitor_index), competitor[10], text_format)
+                worksheet.write('E' + str(competitor_index), competitor[14], text_format)
                 worksheet.write('F' + str(competitor_index), "", text_format)
                 competitor_index += 1
 
@@ -355,22 +350,22 @@ def populate_start_list_worksheets(excel_workbook, registration_csv_list):
                 competitor_index += 1
 
 # Returns a Dictionary with course names as keys, and sorted competitor lists as values 
-def get_sorted_competitor_list_by_classes(registration_csv_list):
+def get_sorted_competitor_list_by_classes(registration_file_list):
     registration_by_classes_dict = {}
-    class_names = get_class_names(registration_csv_list)
+    class_names = get_class_names(registration_file_list)
     for class_name in class_names:
         # Add class name as index
         registration_by_classes_dict[class_name] = []
-    sorted_list = sorted(registration_csv_list, key=itemgetter(3, 1))
+    sorted_list = sorted(registration_file_list, key=itemgetter(3, 1))
     for competitor in sorted_list:
         # Append competitor to class list
         registration_by_classes_dict[competitor[3]].append(competitor)
     return registration_by_classes_dict
 
 # Returns all course names in a competition as a set
-def get_class_names(registration_csv_list):
+def get_class_names(registration_file_list):
     class_names = set()
-    for competitor in registration_csv_list:
+    for competitor in registration_file_list:
         class_names.add(competitor[3])
     return class_names
 
@@ -477,50 +472,48 @@ def generate_isoa_results_file_from_si_droid_results(uploaded_si_droid_results_f
 def generate_preperation_files():
     if request.method == 'POST':
         platform = request.form['platform']
-        uploaded_startlist_files = request.files.getlist("startlists")
+        uploaded_startlist_file = request.files["startlistFile"]
         si_boxes_range_starts = request.form.getlist("rangeStart[]")
         si_boxes_range_endings = request.form.getlist("rangeEnd[]")
         missing_si_card_numbers_in_boxes = request.form.getlist("missingCards[]")
         # Validate user input
         if platform not in ['mulka', 'si-droid']:
             abort(400)
-        csv_startlist_file, excel_startlist_file = validate_startlist_files_user_input(uploaded_startlist_files)
+        startlist_file = validate_startlist_files_user_input(uploaded_startlist_file)
         si_boxes_ranges, missing_si_card_numbers, available_si_card_numbers_for_rent = validate_si_rent_data_user_input(si_boxes_range_starts, si_boxes_range_endings, missing_si_card_numbers_in_boxes)
         with tempfile.TemporaryDirectory() as tmpdir:
-            csv_startlist_file.save(os.path.join(tmpdir, "isoa_startlist.csv"))
-            csv_startlist_list, excel_startlist_list = read_startlist_files_to_list(csv_startlist_file, excel_startlist_file, tmpdir)
+            startlist_list = read_startlist_file_to_list(startlist_file)
             if len(available_si_card_numbers_for_rent) > 0:
                 # Allocate SI cards and output renders list, exceptionals list
-                si_renders_list = allocate_si_cards(csv_startlist_list, excel_startlist_list, available_si_card_numbers_for_rent)
-
+                si_renders_list = allocate_si_cards(startlist_list, available_si_card_numbers_for_rent)
                 # Write SI rental list
                 si_rental_workbook = xlsxwriter.Workbook(os.path.join(tmpdir,'השאלת_כרטיסי_SI.xlsx'))
                 populate_si_rental_worksheets(si_rental_workbook, si_boxes_ranges, missing_si_card_numbers, si_renders_list)
                 si_rental_workbook.close()
 
             # Write exceptional list
-            exceptional_list = get_exceptional_list(csv_startlist_list, excel_startlist_list)
+            exceptional_list = get_exceptional_list(startlist_list)
            
             with open(os.path.join(tmpdir,"חריגים.csv"), 'w', newline='', encoding="cp1255") as exceptionals_file:
                 exceptionals_writer = csv.writer(exceptionals_file)
-                headers_row = ["מס' חבר/ת.ז.", "שם", "מועדון", "מסלול", "טלפון", "חריגה"]
+                headers_row = ["מס' חבר/ת.ז.", "שם", "מועדון", "מסלול", "טלפון", "הערות", "חריגה"]
                 exceptionals_writer.writerow(headers_row)
                 # Write new start list to CSV
                 for row in exceptional_list:
-                    exceptional_competitor_row = [row[0], row[1], row[2], row[3], row[10], row[11]]
+                    exceptional_competitor_row = [row[0], row[1], row[2], row[3],row[14], row[9],row[15]]
                     exceptionals_writer.writerow(exceptional_competitor_row)
 
             # Write Start list sheets
             start_list_workbook = xlsxwriter.Workbook(os.path.join(tmpdir,'רשימות_זינוק_למזניקים.xlsx'))
-            populate_start_list_worksheets(start_list_workbook, csv_startlist_list)
+            populate_start_list_worksheets(start_list_workbook, startlist_list)
             start_list_workbook.close()
 
             # Allocate strangers start number
             STRANGERS_START_NUMBER = 20000
 
-            for index in range(len(csv_startlist_list)):
-                if int(csv_startlist_list[index][0]) > 20000:
-                    csv_startlist_list[index][0] = str(STRANGERS_START_NUMBER)
+            for index in range(len(startlist_list)):
+                if int(startlist_list[index][0]) > 20000:
+                    startlist_list[index][0] = str(STRANGERS_START_NUMBER)
                     STRANGERS_START_NUMBER += 1
             
             # Write start list for platform
@@ -531,8 +524,8 @@ def generate_preperation_files():
                     headers_row = ["STNO", "NAME", "CLUB", "CLASS NAME", "CARD NUMBER"]
                     start_list_writer.writerow(headers_row)
                     # Write new start list to CSV
-                    for row in csv_startlist_list:
-                        official_start_list_row = [row[0], row[1], row[2], row[3], row[5]]
+                    for row in startlist_list:
+                        official_start_list_row = [row[0], row[1], row[2], row[3], row[6]]
                         start_list_writer.writerow(official_start_list_row)
             elif platform == "si-droid":
                 # Write start list for si-droid
@@ -541,9 +534,9 @@ def generate_preperation_files():
                     headers_row = ["SI Number", "Name", "Club", "Id", "Course"]
                     start_list_writer.writerow(headers_row)
                     # Write new start list to CSV
-                    for row in csv_startlist_list:
-                        official_start_list_row = [row[5], row[1], row[2], row[0], row[3]]
-                        if str(row[5]) != "" and str(row[5]) != "0":
+                    for row in startlist_list:
+                        official_start_list_row = [row[6], row[1], row[2], row[0], row[3]]
+                        if str(row[6]) != "" and str(row[6]) != "0":
                             start_list_writer.writerow(official_start_list_row)
             
              # writing files to a zipfile

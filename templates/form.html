@@ -36,13 +36,13 @@
             
          </div>
          <hr />
-        <div style="direction: rtl;">הכנס קבצי משתתפים מאתר האיגוד בפורמט csv ו-xlsx</div>
+        <div style="direction: rtl;">הכנס קובץ משתתפים מאתר האיגוד בפורמט Excel</div>
         <div class="file-upload-container-div">
-          <input type="file" id="startlistsUpload" name="startlists" onchange="on_start_lists_files_upload(this)" data-max-size="32154" accept=".csv,.xlsx" multiple>
-          <label class="file-upload-label" for="startlistsUpload">
+          <input type="file" id="startlistUpload" name="startlistFile" onchange="on_start_list_file_upload(this)" data-max-size="32154" accept=".xlsx">
+          <label class="file-upload-label" for="startlistUpload">
             <i class="fa fa-download" style="font-size: 2rem; color: #5f6982;" aria-hidden="true"></i>
-            <span class="file-upload-btn">בחר קבצים</span>
-            <p id="startlistFilesUploadMsg" class="uploadMsg">הקבצים שנבחרו: </p>
+            <span class="file-upload-btn">בחר קובץ</span>
+            <p id="startlistFileUploadMsg" class="uploadMsg">הקובץ שנבחר: </p>
           </label>
           {% if platform == "mulka" %}
           <input type="hidden" id="platform" name="platform" value="mulka">
@@ -107,16 +107,16 @@
           }
         } 
       }
-      function on_start_lists_files_upload(elem) {
-        let fileUpload = document.getElementById("startlistsUpload");
-        let uploadMsg = document.getElementById("startlistFilesUploadMsg");
+      function on_start_list_file_upload(elem) {
+        let fileUpload = document.getElementById("startlistUpload");
+        let uploadMsg = document.getElementById("startlistFileUploadMsg");
         // display file name if file has been selected
         let input = elem.files;
         let text = "";
         if (input) {
           Array.from(input).forEach(file => text += file.name + " " );
         }
-        uploadMsg.innerHTML = "הקבצים שנבחרו: "
+        uploadMsg.innerHTML = "הקובץ שנבחר: "
         uploadMsg.innerHTML += text
       }
       function on_results_file_upload(elem) {
