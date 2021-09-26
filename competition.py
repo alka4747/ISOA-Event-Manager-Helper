@@ -92,8 +92,8 @@ def allocate_si_cards(csv_statlist_list, excel_startlist_list, available_si_card
             csv_statlist_list[index][5] = str(available_si_card_numbers_for_rent[si_number_index])
             si_renders_list.append(csv_statlist_list[index])
             si_number_index += 1
-            if si_number_index > len(available_si_card_numbers_for_rent):
-                raise Exception("No more SI numbers to allocate")
+            if si_number_index > len(available_si_card_numbers_for_rent)-1:
+                break
     return si_renders_list
 
 def populate_si_rental_worksheets(excel_workbook, number_ranges_list, missing_numbers, renders_list):
@@ -526,7 +526,7 @@ def generate_preperation_files():
             # Write start list for platform
             if platform == "mulka":
                 # Write start list for Mulka
-                with open(os.path.join(tmpdir,"start_list.csv"), 'w', newline='', encoding="cp1255") as official_start_list:
+                with open(os.path.join(tmpdir,"StartList.csv"), 'w', newline='', encoding="cp1255") as official_start_list:
                     start_list_writer = csv.writer(official_start_list)
                     headers_row = ["STNO", "NAME", "CLUB", "CLASS NAME", "CARD NUMBER"]
                     start_list_writer.writerow(headers_row)
@@ -536,7 +536,7 @@ def generate_preperation_files():
                         start_list_writer.writerow(official_start_list_row)
             elif platform == "si-droid":
                 # Write start list for si-droid
-                with open(os.path.join(tmpdir,"start_list.csv"), 'w', newline='', encoding="utf8") as official_start_list:
+                with open(os.path.join(tmpdir,"StartList.csv"), 'w', newline='', encoding="utf8") as official_start_list:
                     start_list_writer = csv.writer(official_start_list)
                     headers_row = ["SI Number", "Name", "Club", "Id", "Course"]
                     start_list_writer.writerow(headers_row)
@@ -550,9 +550,9 @@ def generate_preperation_files():
             with ZipFile(os.path.join(tmpdir,'competition_files.zip'),'w') as zip:
                 # writing each file one by one
                 if len(available_si_card_numbers_for_rent) > 0:
-                    file_paths = [os.path.join(tmpdir,"start_list.csv"), os.path.join(tmpdir,'רשימות_זינוק_למזניקים.xlsx'), os.path.join(tmpdir,'השאלת_כרטיסי_SI.xlsx'), os.path.join(tmpdir,"חריגים.csv")]
+                    file_paths = [os.path.join(tmpdir,"StartList.csv"), os.path.join(tmpdir,'רשימות_זינוק_למזניקים.xlsx'), os.path.join(tmpdir,'השאלת_כרטיסי_SI.xlsx'), os.path.join(tmpdir,"חריגים.csv")]
                 else:
-                    file_paths = [os.path.join(tmpdir,"start_list.csv"), os.path.join(tmpdir,'רשימות_זינוק_למזניקים.xlsx'), os.path.join(tmpdir,"חריגים.csv")]
+                    file_paths = [os.path.join(tmpdir,"StartList.csv"), os.path.join(tmpdir,'רשימות_זינוק_למזניקים.xlsx'), os.path.join(tmpdir,"חריגים.csv")]
                 for file in file_paths:
                     zip.write(file, os.path.basename(file))
 
