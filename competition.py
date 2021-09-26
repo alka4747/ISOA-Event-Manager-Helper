@@ -223,7 +223,7 @@ def populate_start_list_worksheets(excel_workbook, registration_file_list):
     all_competitors_worksheet.write('A1', "מס' חבר", headers_format)
     all_competitors_worksheet.write('B1', "שם", headers_format)
     all_competitors_worksheet.write('C1', "מועדון", headers_format)
-    all_competitors_worksheet.write('D1', "מסלול", headers_format)
+    all_competitors_worksheet.write('D1', "מסלול/קטגוריה", headers_format)
     all_competitors_worksheet.write('E1', "מס' כרטיס", headers_format)
     all_competitors_worksheet.write('F1', "טלפון", headers_format)
     all_competitors_worksheet.write('G1', "שעת זינוק", headers_format)
@@ -267,7 +267,7 @@ def populate_start_list_worksheets(excel_workbook, registration_file_list):
             worksheet.write('B1', "מס' חבר", headers_format)
             worksheet.write('C1', "שם", headers_format)
             worksheet.write('D1', "מועדון", headers_format)
-            worksheet.write('E1', "מסלול", headers_format)
+            worksheet.write('E1', "מסלול/קטגוריה", headers_format)
             worksheet.write('F1', "מס' כרטיס", headers_format)
             worksheet.write('G1', "טלפון", headers_format)
             worksheet.write('H1', "שעת זינוק", headers_format)
@@ -496,7 +496,7 @@ def generate_preperation_files():
            
             with open(os.path.join(tmpdir,"חריגים.csv"), 'w', newline='', encoding="cp1255") as exceptionals_file:
                 exceptionals_writer = csv.writer(exceptionals_file)
-                headers_row = ["מס' חבר/ת.ז.", "שם", "מועדון", "מסלול", "טלפון", "הערות", "חריגה"]
+                headers_row = ["מס' חבר/ת.ז.", "שם", "מועדון", "מסלול/קטגוריה", "טלפון", "הערות", "חריגה"]
                 exceptionals_writer.writerow(headers_row)
                 # Write new start list to CSV
                 for row in exceptional_list:
