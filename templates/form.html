@@ -17,7 +17,7 @@
     <div class="tab">
       <form method="post" action="/api/competition/generate-preperation-files" enctype="multipart/form-data">
         <div id="siBoxesDetailsContainer">
-             <div class='label' style="direction: rtl;">הזן פרטי מזוודות כרטיסי SI להשכרה
+             <div class='label' style="direction: rtl; padding-bottom: 1rem;">הזן פרטי מזוודות כרטיסי SI להשכרה
               <div class="tooltip"><span class="tooltipitem"><i class="fa fa-info-circle" aria-hidden="true"></i></span>
                 <span class="tooltiptext" id="siallocationtooltip">
                   <div class="tooltipcontainer">
@@ -46,7 +46,7 @@
             
          </div>
          <hr />
-        <div style="direction: rtl;">הכנס קובץ משתתפים מאתר האיגוד בפורמט Excel
+        <div style="direction: rtl; padding-bottom: 1rem;">הכנס קובץ משתתפים מאתר האיגוד בפורמט Excel
           <div class="tooltip"><span class="tooltipitem"><i class="fa fa-info-circle" aria-hidden="true"></i></span>
             <span class="tooltiptext">
               <div class="tooltipcontainer">
@@ -83,10 +83,10 @@
     <div class="tab">
       <form method="post" action="/api/competition/generate-isoa-results-file" enctype="multipart/form-data">
         {% if platform == "mulka" %}
-          <div style="direction: rtl;">הזן קובץ תוצאות של Mulka בפורמט CSV</div>
+          <div style="direction: rtl; padding-bottom: 1rem;">הזן קובץ תוצאות של Mulka בפורמט CSV</div>
         {% endif %}
         {% if platform == "si-droid" %}
-          <div style="direction: rtl;">הזן קובץ תוצאות של SI-Droid בפורמט XML
+          <div style="direction: rtl; padding-bottom: 1rem;">הזן קובץ תוצאות של SI-Droid בפורמט XML
             <div class="tooltip"><span class="tooltipitem"><i class="fa fa-info-circle" aria-hidden="true"></i></span>
               <span class="tooltiptext">
                 <div class="tooltipcontainer">
