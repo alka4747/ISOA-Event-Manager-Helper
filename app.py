@@ -19,6 +19,3 @@ def form():
     if user_requested_platform not in ['mulka', 'si-droid']:
         abort(400)
     return render_template('form.html', platform=user_requested_platform)
-
-if __name__ == '__main__':
-    app.run(debug=True)
