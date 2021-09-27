@@ -17,8 +17,8 @@
     <div class="tab">
       <form method="post" action="/api/competition/generate-preperation-files" enctype="multipart/form-data">
         <div id="siBoxesDetailsContainer">
-             <div class='label' style="direction: rtl; padding-bottom: 1rem;">הזן פרטי מזוודות כרטיסי SI להשכרה
-              <div class="tooltip"><span class="tooltipitem"><i class="fa fa-info-circle" aria-hidden="true"></i></span>
+             <div class='label' style="direction: rtl; padding-bottom: 1rem; padding-top: 1rem;">הזן פרטי מזוודות כרטיסי SI להשכרה
+              <div class="tooltip"><span class="tooltipitem"><i class="fa fa-info-circle" style="font-size: 115%;" aria-hidden="true"></i></span>
                 <span class="tooltiptext" id="siallocationtooltip">
                   <div class="tooltipcontainer">
                     <div id="text2">במידה ומספר המזוודות הוא אפס, לא מוקצים כרטיסי SI באופן אוטומטי</div>
@@ -47,7 +47,7 @@
          </div>
          <hr />
         <div style="direction: rtl; padding-bottom: 1rem;">הכנס קובץ משתתפים מאתר האיגוד בפורמט Excel
-          <div class="tooltip"><span class="tooltipitem"><i class="fa fa-info-circle" aria-hidden="true"></i></span>
+          <div class="tooltip"><span class="tooltipitem"><i class="fa fa-info-circle" style="font-size: 115%;" aria-hidden="true"></i></span>
             <span class="tooltiptext">
               <div class="tooltipcontainer">
                 <img src="../static/Button_For_Mulka_Excel_File.png">
@@ -83,11 +83,11 @@
     <div class="tab">
       <form method="post" action="/api/competition/generate-isoa-results-file" enctype="multipart/form-data">
         {% if platform == "mulka" %}
-          <div style="direction: rtl; padding-bottom: 1rem;">הזן קובץ תוצאות של Mulka בפורמט CSV</div>
+          <div style="direction: rtl; padding-bottom: 1rem; padding-top: 1rem;">הזן קובץ תוצאות של Mulka בפורמט CSV</div>
         {% endif %}
         {% if platform == "si-droid" %}
-          <div style="direction: rtl; padding-bottom: 1rem;">הזן קובץ תוצאות של SI-Droid בפורמט XML
-            <div class="tooltip"><span class="tooltipitem"><i class="fa fa-info-circle" aria-hidden="true"></i></span>
+          <div style="direction: rtl; padding-bottom: 1rem; padding-top: 1rem;">הזן קובץ תוצאות של SI-Droid בפורמט XML
+            <div class="tooltip"><span class="tooltipitem"><i class="fa fa-info-circle" style="font-size: 115%;" aria-hidden="true"></i></span>
               <span class="tooltiptext">
                 <div class="tooltipcontainer">
                   <img src="../static/Share_Results_SI_Droid.png">
