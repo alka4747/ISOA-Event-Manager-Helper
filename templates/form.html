@@ -39,7 +39,7 @@
          <hr />
         <div style="direction: rtl;">הכנס קובץ משתתפים מאתר האיגוד בפורמט Excel</div>
         <div class="file-upload-container-div">
-          <input type="file" id="startlistUpload" name="startlistFile" onchange="on_start_list_file_upload(this)" data-max-size="32154" accept=".xlsx">
+          <input type="file" id="startlistUpload" name="startlistFile" onchange="on_start_list_file_upload(this)" data-max-size="32154" accept=".xlsx" required>
           <label class="file-upload-label" for="startlistUpload">
             <i class="fa fa-download" style="font-size: 2rem; color: #5f6982;" aria-hidden="true"></i>
             <span class="file-upload-btn">בחר קובץ</span>
@@ -71,7 +71,7 @@
           <div style="direction: rtl;">הזן קובץ תוצאות של SI-Droid בפורמט XML</div>
         {% endif %}
         <div class="file-upload-container-div">
-          <input type="file" id="resultsFileUpload" name="resultsFile" onchange="on_results_file_upload(this)" accept=".csv,.xml" data-max-size="32154">
+          <input type="file" id="resultsFileUpload" name="resultsFile" onchange="on_results_file_upload(this)" accept=".csv,.xml" data-max-size="32154" required>
           <label class="file-upload-label" for="resultsFileUpload">
             <i class="fa fa-download" style="font-size: 2rem; color: #5f6982;" aria-hidden="true"></i>
             <span class="file-upload-btn">בחר קובץ</span>
