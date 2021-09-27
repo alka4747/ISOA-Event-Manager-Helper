@@ -61,13 +61,17 @@ def read_startlist_file_to_list(excel_file):
 def get_exceptional_list(startlist_list):
     exceptional_list = []
     for index in range(len(startlist_list)):
+        if startlist_list[index][3] == "":
+            exceptional_competitor = startlist_list[index]
+            exceptional_competitor.append("נרשם ללא מסלול")
+            exceptional_list.append(exceptional_competitor)
         if startlist_list[index][10] == "True":
             if startlist_list[index][3] == "עממי":
                 exceptional_competitor = startlist_list[index]
                 exceptional_competitor.append("שכר כרטיס אלקטרוני אבל נרשם לעממי")
                 exceptional_list.append(exceptional_competitor)
         else:
-            if startlist_list[index][3] != "עממי" and (startlist_list[index][6] == "" or startlist_list[index][6] == "0"):
+            if startlist_list[index][3] != "עממי" and (startlist_list[index][6] == "" or startlist_list[index][6] == "0") and startlist_list[index][3] != "":
                 exceptional_competitor = startlist_list[index]
                 exceptional_competitor.append("נרשם לתחרותי אבל ללא כרטיס אלקטרוני")
                 exceptional_list.append(exceptional_competitor)
@@ -82,7 +86,7 @@ def allocate_si_cards(startlist_list, available_si_card_numbers_for_rent):
     si_number_index = 0
     si_renders_list = []
     for index in range(len(startlist_list)):
-        if startlist_list[index][10] == "True":
+        if startlist_list[index][10] == "True" or startlist_list[index][10] == "1":
             # Allocate SI number
             startlist_list[index][6] = str(available_si_card_numbers_for_rent[si_number_index])
             si_renders_list.append(startlist_list[index])
@@ -251,7 +255,10 @@ def populate_start_list_worksheets(excel_workbook, registration_file_list):
     sorted_competitor_list_by_classes = get_sorted_competitor_list_by_classes(registration_file_list)
     for course in sorted_competitor_list_by_classes:
         if course != "עממי":
-            worksheet = excel_workbook.add_worksheet(course)
+            if course == "":
+                worksheet = excel_workbook.add_worksheet("ללא מסלול")
+            else:
+                worksheet = excel_workbook.add_worksheet(course)
             worksheet.right_to_left()
             worksheet.set_column('A:A', 9)
             worksheet.set_column('B:B', 11)
@@ -501,7 +508,10 @@ def generate_preperation_files():
                 # Write new start list to CSV
                 for row in exceptional_list:
                     exceptional_competitor_row = [row[0], row[1], row[2], row[3],row[14], row[9],row[15]]
-                    exceptionals_writer.writerow(exceptional_competitor_row)
+                    try:
+                        exceptionals_writer.writerow(exceptional_competitor_row)
+                    except UnicodeError:
+                        exceptionals_writer.writerow([row[0], row[1], row[2], row[3],row[14], "","רשם הערה כוללת תווים לא חוקיים - יש לבדוק באתר"])
 
             # Write Start list sheets
             start_list_workbook = xlsxwriter.Workbook(os.path.join(tmpdir,'רשימות_זינוק_למזניקים.xlsx'))
