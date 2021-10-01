@@ -1,4 +1,5 @@
 from flask import Blueprint, request, abort, send_file
+from numpy import printoptions
 from werkzeug.utils import secure_filename
 from operator import itemgetter
 from zipfile import ZipFile
@@ -14,8 +15,7 @@ import datetime
 competition = Blueprint('competition', __name__)
 
 ALLOWED_STARTLIST_FILE_EXTENSIONS = [".xlsx"]
-ALLOWED_MULKA_RESULTS_FILE_EXTENSIONS = [".csv"]
-ALLOWED_SI_DROID_RESULTS_FILE_EXTENSIONS = [".xml"]
+ALLOWED_RESULTS_FILE_EXTENSIONS = [".xml"]
 
 def validate_startlist_files_user_input(startlist_file):
     filename = secure_filename(startlist_file.filename)
@@ -376,51 +376,16 @@ def get_class_names(registration_file_list):
         class_names.add(competitor[3])
     return class_names
 
-def validate_mulka_results_user_input(uploaded_mulka_results_file):
-    filename = secure_filename(uploaded_mulka_results_file.filename)
+def validate_results_user_input(uploaded_results_file):
+    filename = secure_filename(uploaded_results_file.filename)
     if filename != '':
         file_ext = os.path.splitext(filename)[1]
-        if file_ext not in ALLOWED_MULKA_RESULTS_FILE_EXTENSIONS:
+        if file_ext not in ALLOWED_RESULTS_FILE_EXTENSIONS:
             abort(400)
     else:
         abort(400)
 
-def generate_isoa_results_file_from_mulka_results(uploaded_mulka_results_file, directory):
-    uploaded_mulka_results_file.save(os.path.join(directory, "mulka_results.csv"))
-    with open(os.path.join(directory, "mulka_results.csv"), 'r', encoding="cp1255") as mulka_results_file:
-        # Skip headers
-        mulka_results_file.readline()
-        # Read competitor list CSV
-        reader = csv.reader(mulka_results_file, delimiter=',')
-        csv_lines = []
-        for r in reader:
-            if len(r) == 18 and r[17] != '' and r[17] != 'DNS':
-                name = r[4].split()
-                name.insert(0, name.pop())
-                first_name, *last_name = name
-                last_name = " ".join(last_name)
-                csv_lines.append([r[0], r[1], r[2], last_name, first_name, r[17]])
-        # Sort results CSV content
-        sorted_list = sorted(csv_lines, key=itemgetter(1, 5))
-    with open(os.path.join(directory, "official_results.csv"), 'w', newline='', encoding="cp1255") as offical_results:
-        writer = csv.writer(offical_results)
-        # Write headers row
-        headers_row = ["runnerid", "category", "position", "famname", "usrname", "time"]
-        writer.writerow(headers_row)
-        # Write results to CSV
-        for row in sorted_list:
-            writer.writerow(row)
-
-def validate_si_droid_results_user_input(uploaded_si_droid_results_file):
-    filename = secure_filename(uploaded_si_droid_results_file.filename)
-    if filename != '':
-        file_ext = os.path.splitext(filename)[1]
-        if file_ext not in ALLOWED_SI_DROID_RESULTS_FILE_EXTENSIONS:
-            abort(400)
-    else:
-        abort(400)
-
-def parse_si_droid_results_xml(xml_file):
+def parse_iof_results_xml(xml_file):
     # create element tree object
     tree = ET.parse(xml_file)
     # get root element
@@ -429,32 +394,42 @@ def parse_si_droid_results_xml(xml_file):
     # create empty list for competitors data
     competitors_data = []
 
+    # Initial Id for runners without id
+    STRANGERS_START_NUMBER = 30000
+
     # iterate competitors
     for class_result in root.findall('{http://www.orienteering.org/datastandard/3.0}ClassResult'):
         position_index = 1
         for competitor in class_result.findall('{http://www.orienteering.org/datastandard/3.0}PersonResult'):
             if competitor.find('{http://www.orienteering.org/datastandard/3.0}Result').find('{http://www.orienteering.org/datastandard/3.0}Status').text == "OK":
                 competitor_time = str(datetime.timedelta(seconds = int(competitor.find('{http://www.orienteering.org/datastandard/3.0}Result').find('{http://www.orienteering.org/datastandard/3.0}Time').text)))
-                competitor_position = position_index
+                competitor_position = 0
+            elif competitor.find('{http://www.orienteering.org/datastandard/3.0}Result').find('{http://www.orienteering.org/datastandard/3.0}Status').text == "Active" or competitor.find('{http://www.orienteering.org/datastandard/3.0}Result').find('{http://www.orienteering.org/datastandard/3.0}Status').text == "DidNotStart":
+                continue
             else:
                 competitor_time = "DISQ"
                 competitor_position = ""
             competitor_id = competitor.find('{http://www.orienteering.org/datastandard/3.0}Person').find('{http://www.orienteering.org/datastandard/3.0}Id')
-            if competitor_id is not None:
+            bib_number = competitor.find('{http://www.orienteering.org/datastandard/3.0}Result').find('{http://www.orienteering.org/datastandard/3.0}BibNumber')
+            if competitor_id is not None and competitor_id.text is not None:
                 competitor_id = competitor_id.text
-            competitor_data = {'runnerId': competitor_id,
-                               'category': class_result.find('{http://www.orienteering.org/datastandard/3.0}Class').find('{http://www.orienteering.org/datastandard/3.0}Name').text,
-                               'position': competitor_position,
-                               'famname': competitor.find('{http://www.orienteering.org/datastandard/3.0}Person').find('{http://www.orienteering.org/datastandard/3.0}Name').find('{http://www.orienteering.org/datastandard/3.0}Family').text,
-                               'usrname': competitor.find('{http://www.orienteering.org/datastandard/3.0}Person').find('{http://www.orienteering.org/datastandard/3.0}Name').find('{http://www.orienteering.org/datastandard/3.0}Given').text,
-                               'time': competitor_time}
+            elif bib_number is not None:
+                competitor_id = bib_number.text
+            else:
+                competitor_id = str(STRANGERS_START_NUMBER)
+                STRANGERS_START_NUMBER += 1
+            competitor_data = [competitor_id, class_result.find('{http://www.orienteering.org/datastandard/3.0}Class').find('{http://www.orienteering.org/datastandard/3.0}Name').text, competitor_position, competitor.find('{http://www.orienteering.org/datastandard/3.0}Person').find('{http://www.orienteering.org/datastandard/3.0}Name').find('{http://www.orienteering.org/datastandard/3.0}Family').text, competitor.find('{http://www.orienteering.org/datastandard/3.0}Person').find('{http://www.orienteering.org/datastandard/3.0}Name').find('{http://www.orienteering.org/datastandard/3.0}Given').text, competitor_time]
             competitors_data.append(competitor_data)
-            position_index += 1
+        sorted_competitors_data = sorted(competitors_data, key=itemgetter(1, 5))
+        for competitor_data in sorted_competitors_data:
+            if competitor_data[2] == 0:
+                competitor_data[2] = position_index
+                position_index += 1
     headers = ['runnerId', 'category', 'position', 'famname', 'usrname', 'time']
     return {"headers": headers,
-            "competitors_data": competitors_data}
+            "competitors_data": sorted_competitors_data}
 
-def save_si_droid_official_results_to_csv(xml_data, file_name):
+def save_official_results_to_csv(xml_data, file_name):
     # writing to csv file
     with open(file_name, 'w', encoding="cp1255", newline='') as csvfile:
         # creating a csv dict writer object
@@ -462,17 +437,18 @@ def save_si_droid_official_results_to_csv(xml_data, file_name):
 
         # writing headers (field names)
         writer.writerow(xml_data["headers"])
+
         # write punch data
         for competitor_data in xml_data["competitors_data"]:
-            writer.writerow(competitor_data.values())
+            writer.writerow(competitor_data)
     return csvfile
 
-def generate_isoa_results_file_from_si_droid_results(uploaded_si_droid_results_file, directory):
-        uploaded_si_droid_results_file.save(os.path.join(directory, "si_droid_results.xml"))
+def generate_isoa_results_file_from_iof_xml(uploaded_results_file, directory):
+        uploaded_results_file.save(os.path.join(directory, "iof_results.xml"))
         # parse xml file
-        xml_data = parse_si_droid_results_xml(os.path.join(directory, "si_droid_results.xml"))
+        xml_data = parse_iof_results_xml(os.path.join(directory, "iof_results.xml"))
         # store results in a csv file
-        return save_si_droid_official_results_to_csv(xml_data, os.path.join(directory,'official_results.csv'))
+        return save_official_results_to_csv(xml_data, os.path.join(directory,'official_results.csv'))
         
 
 @competition.route('/generate-preperation-files', methods=['POST'])
@@ -573,15 +549,10 @@ def generate_isoa_results_file():
         if platform not in ['mulka', 'si-droid']:
             abort(400)
         with tempfile.TemporaryDirectory() as tmpdir:
-            if platform == "mulka":
-                uploaded_mulka_results_file = request.files["resultsFile"]
-                validate_mulka_results_user_input(uploaded_mulka_results_file)
-                generate_isoa_results_file_from_mulka_results(uploaded_mulka_results_file, tmpdir)
-            elif platform == "si-droid":
-                uploaded_si_droid_results_file = request.files["resultsFile"]
-                validate_si_droid_results_user_input(uploaded_si_droid_results_file)
-                generate_isoa_results_file_from_si_droid_results(uploaded_si_droid_results_file, tmpdir)
-            # send official results to client
+            uploaded_results_file = request.files["resultsFile"]
+            validate_results_user_input(uploaded_results_file)
+            generate_isoa_results_file_from_iof_xml(uploaded_results_file, tmpdir)
+            # send fficial results to client
             with open(os.path.join(tmpdir, "official_results.csv"), "rb") as f:
                 content = io.BytesIO(f.read())
             return send_file(content,

@@ -82,23 +82,20 @@
     <label class="tabsLabel" for="tabtwo">הפקת תוצאות רשמיות</label>
     <div class="tab">
       <form method="post" action="/api/competition/generate-isoa-results-file" enctype="multipart/form-data">
-        {% if platform == "mulka" %}
-          <div style="direction: rtl; padding-bottom: 1rem; padding-top: 1rem;">הזן קובץ תוצאות של Mulka בפורמט CSV</div>
-        {% endif %}
-        {% if platform == "si-droid" %}
-          <div style="direction: rtl; padding-bottom: 1rem; padding-top: 1rem;">הזן קובץ תוצאות של SI-Droid בפורמט XML
-            <div class="tooltip"><span class="tooltipitem"><i class="fa fa-info-circle" style="font-size: 115%;" aria-hidden="true"></i></span>
-              <span class="tooltiptext">
-                <div class="tooltipcontainer">
-                  <img src="../static/Share_Results_SI_Droid.png">
-                  <div id="text">ניתן להשיג את הקובץ מהאפליקציה תחת Results > Share Results > Results for Eventor (IOFv3 XML)</div>
-                </div>
-              </span>
-            </div>
+        <div style="direction: rtl; padding-bottom: 1rem; padding-top: 1rem;">הזן קובץ תוצאות בפורמט IOF XML
+          {% if platform == "si-droid" %}
+          <div class="tooltip"><span class="tooltipitem"><i class="fa fa-info-circle" style="font-size: 115%;" aria-hidden="true"></i></span>
+            <span class="tooltiptext">
+              <div class="tooltipcontainer">
+                <img src="../static/Share_Results_SI_Droid.png">
+                <div id="text">ניתן להשיג את הקובץ מהאפליקציה תחת Results > Share Results > Results for Eventor (IOFv3 XML)</div>
+              </div>
+            </span>
           </div>
-        {% endif %}
+          {% endif %}
+        </div>
         <div class="file-upload-container-div">
-          <input type="file" id="resultsFileUpload" name="resultsFile" onchange="on_results_file_upload(this)" accept=".csv,.xml" data-max-size="32154" required>
+          <input type="file" id="resultsFileUpload" name="resultsFile" onchange="on_results_file_upload(this)" accept=".xml" data-max-size="32154" required>
           <label class="file-upload-label" for="resultsFileUpload">
             <i class="fa fa-download" style="font-size: 2rem; color: #5f6982;" aria-hidden="true"></i>
             <span class="file-upload-btn">בחר קובץ</span>
