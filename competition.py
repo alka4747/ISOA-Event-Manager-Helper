@@ -477,18 +477,25 @@ def generate_preperation_files():
             # Write exceptional list
             exceptional_list = get_exceptional_list(startlist_list)
            
-            with open(os.path.join(tmpdir,"חריגים.csv"), 'w', newline='', encoding="cp1255") as exceptionals_file:
-                exceptionals_writer = csv.writer(exceptionals_file)
+            with xlsxwriter.Workbook(os.path.join(tmpdir,'חריגים.xlsx')) as workbook:
+                worksheet = workbook.add_worksheet("חריגים")
+                worksheet.right_to_left()
+                worksheet.set_column('A:A', 15)
+                worksheet.set_column('B:B', 25)
+                worksheet.set_column('C:C', 20)
+                worksheet.set_column('D:D', 13)
+                worksheet.set_column('E:E', 13)
+                worksheet.set_column('F:F', 50)
+                worksheet.set_column('G:G', 40)
                 headers_row = ["מס' חבר/ת.ז.", "שם", "מועדון", "מסלול/קטגוריה", "טלפון", "הערות", "חריגה"]
-                exceptionals_writer.writerow(headers_row)
-                # Write new start list to CSV
-                for row in exceptional_list:
-                    exceptional_competitor_row = [row[0], row[1], row[2], row[3],row[14], row[9],row[15]]
-                    try:
-                        exceptionals_writer.writerow(exceptional_competitor_row)
-                    except UnicodeError:
-                        exceptionals_writer.writerow([row[0], row[1], row[2], row[3],row[14], "","רשם הערה כוללת תווים לא חוקיים - יש לבדוק באתר"])
-
+                exceptional_list.insert(0, headers_row)
+                for row_num, data in enumerate(exceptional_list):
+                    if data != headers_row:
+                        exceptional_competitor_row = [data[0], data[1], data[2], data[3],data[14], data[9],data[15]]
+                        worksheet.write_row(row_num, 0, exceptional_competitor_row)
+                    else:
+                        worksheet.write_row(row_num, 0, data)
+            
             # Write Start list sheets
             start_list_workbook = xlsxwriter.Workbook(os.path.join(tmpdir,'רשימות_זינוק_למזניקים.xlsx'))
             populate_start_list_worksheets(start_list_workbook, startlist_list)
@@ -529,9 +536,9 @@ def generate_preperation_files():
             with ZipFile(os.path.join(tmpdir,'competition_files.zip'),'w') as zip:
                 # writing each file one by one
                 if len(available_si_card_numbers_for_rent) > 0:
-                    file_paths = [os.path.join(tmpdir,"StartList.csv"), os.path.join(tmpdir,'רשימות_זינוק_למזניקים.xlsx'), os.path.join(tmpdir,'השאלת_כרטיסי_SI.xlsx'), os.path.join(tmpdir,"חריגים.csv")]
+                    file_paths = [os.path.join(tmpdir,"StartList.csv"), os.path.join(tmpdir,'רשימות_זינוק_למזניקים.xlsx'), os.path.join(tmpdir,'השאלת_כרטיסי_SI.xlsx'), os.path.join(tmpdir,'חריגים.xlsx')]
                 else:
-                    file_paths = [os.path.join(tmpdir,"StartList.csv"), os.path.join(tmpdir,'רשימות_זינוק_למזניקים.xlsx'), os.path.join(tmpdir,"חריגים.csv")]
+                    file_paths = [os.path.join(tmpdir,"StartList.csv"), os.path.join(tmpdir,'רשימות_זינוק_למזניקים.xlsx'), os.path.join(tmpdir,'חריגים.xlsx')]
                 for file in file_paths:
                     zip.write(file, os.path.basename(file))
 
