@@ -528,7 +528,10 @@ def generate_preperation_files():
                     start_list_writer.writerow(headers_row)
                     # Write new start list to CSV
                     for row in startlist_list:
-                        official_start_list_row = [row[6], row[1], row[2], row[0], row[3]]
+                        name = row[1].rsplit(' ', 1)
+                        name.insert(0, name.pop())
+                        name = ' '.join(name)
+                        official_start_list_row = [row[6], name, row[2], row[0], row[3]]
                         if str(row[6]) != "" and str(row[6]) != "0":
                             start_list_writer.writerow(official_start_list_row)
             
