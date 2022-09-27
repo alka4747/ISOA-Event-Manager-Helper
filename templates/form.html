@@ -81,7 +81,7 @@
     <input type="radio" name="tabs" id="tabtwo">
     <label class="tabsLabel" for="tabtwo">הפקת תוצאות רשמיות</label>
     <div class="tab">
-      <form method="post" action="/api/competition/generate-isoa-results-file" enctype="multipart/form-data">
+      <form method="post" action="/api/competition/generate-post-competition-files" enctype="multipart/form-data">
         <div style="direction: rtl; padding-bottom: 1rem; padding-top: 1rem;">הזן קובץ תוצאות בפורמט IOF XML
           {% if platform == "si-droid" %}
           <div class="tooltip"><span class="tooltipitem"><i class="fa fa-info-circle" style="font-size: 115%;" aria-hidden="true"></i></span>

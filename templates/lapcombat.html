@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- font awesome -->
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css">
+  <!-- bootstrap css -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+  <!-- jquery, bootstrap, popper js -->
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+  <!-- bootstrap-select jquery plugin -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/css/bootstrap-select.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.18/dist/js/bootstrap-select.min.js"></script>
+  <!-- datatables jquery plugin -->
+  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.min.css">
+  <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+  <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/fixedheader/3.2.1/js/dataTables.fixedHeader.min.js"></script>
+  <script type="text/javascript" charset="utf8" src="https://datatables.net/release-datatables/extensions/FixedColumns/js/dataTables.fixedColumns.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    #myTable {
+      border-collapse: collapse;
+      max-width: 100%;
+      border: 1px solid #ddd;
+      font-size: 18px;
+    }
+
+    #myTable th,
+    #myTable td {
+      text-align: left;
+      padding: 12px;
+    }
+
+    #myTable tr {
+      border-bottom: 1px solid #ddd;
+    }
+
+    #myTable tr.header {
+      background-color: #b8b7b7;
+    }
+
+    .highlighted {
+      background-color: #f1f1f1;
+      cursor: pointer;
+    }
+    .header {
+      background-color: #b8b7b7;
+      /* background-image: linear-gradient(315deg, #f5d020 0%, #f53803 74%); */
+    }
+    #searchContainerDiv {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin: 20px;
+    }
+
+    #selectCourse {
+      flex-grow: 9;
+    }
+
+    #searchNamesInput {
+      flex-grow: 1;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2 style="text-align: center;">Lapcombat {{eventName}}</h2>
+  <div id="searchContainerDiv">
+
+    <select name="course" id="selectCourse">
+      {% for i in range(categories|length) %}
+      <option value="course{{i}}">{{categories[i].categoryName}}</option>
+      {% endfor %}
+    </select>
+    <select name="anayltic" class="btn-group" id="selectAnalytic">
+      <option value="splitsTable">זמני ביניים</option>
+      <option value="mistakesTable">ניתוח טעויות</option>
+    </select>
+  </div>
+
+  {% for i in range(categories|length) %}
+  <table class="order-column stripe splitsTable course{{i}}">
+    <thead>
+      <tr class="header">
+        <th data-orderable="false">Rank</th>
+        <th class="targetHeaderCell" data-orderable="false">Name</th>
+        <th>Total Time</th>
+        {% for leg in categories[i].course.legList %}
+        <th>{{leg}}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for competitor in categories[i].competitors %}
+        <tr>
+          <td>{{competitor.place_Text}}</td>
+          <td>{{competitor.firstName}} {{competitor.lastName}}</td>
+          <td>{{competitor.totalTime_Text}}</td>
+          {% for leg in competitor.legSplits_Text %}
+          <td>{{leg}}</td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <table class="mistakesTable course{{i}}">
+    <thead>
+      <tr class="header">
+        <th>Rank</th>
+        <th class="targetHeaderCell" data-orderable="false">Name / Club</th>
+        <th>Total Mistake Times</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>אלון כהנא</td>
+        <td>15:59</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Berglunds snabbkop</td>
+        <td>16:40</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Island Trading</td>
+        <td>16:41</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Laughing Bacchus Winecellars</td>
+        <td>17:23</td>
+      </tr>
+    </tbody>
+  </table>
+  {% endfor %}
+
+  <script type="text/javascript" charset="utf8">
+    $(document).ready(function () {
+      $('.splitsTable').DataTable({
+        "paging": false,
+        "info": false,
+        "order": [[ 2, "asc" ]],
+        "columnDefs": [
+          { "type": "num", "targets": 0}
+        ],
+        fixedHeader: {
+            header: true
+        },
+        // scrollX: "100%",
+        // fixedColumns: {
+        //   leftColumns: 2
+        // },
+        initComplete: function () {
+          this.api().columns([1]).every(function () {
+            var column = this;
+            var select = $('<select class="my-select" data-width="100%" data-live-search="true" data-selected-text-format="count" data-actions-box="true" data-none-selected-text="Name" multiple></select>')
+              .appendTo($(column.header()).empty())
+              .on('changed.bs.select', function (e) {
+                var val = $(this).val();
+                var fVal = val.join("|")
+                column
+                  .search(fVal, true, false)
+                  .draw();
+              }); //select
+
+            column.data().unique().sort().each(function (d, j) {
+              select.append('<option value="' + d + '">' + d + '</option>')
+            }); //column.data
+          }); //this.api
+        } //initComplete
+      });
+      $('.my-select').selectpicker();
+      $('.dataTables_filter').hide()
+    });
+    var selectedCourse;
+    var selectedAnalytic;
+    $("#selectCourse").change(function(){
+        $(this).find("option:selected").each(function(){
+            selectedCourse = $(this).attr("value");
+            if(selectedCourse){
+                $('table').not("." + selectedCourse + "." + selectedAnalytic).hide();
+                $("." + selectedCourse + "." + selectedAnalytic).show();
+            } else{
+                $('table').hide();
+            }
+        });
+    }).change();
+
+    $("#selectAnalytic").change(function(){
+    $(this).find("option:selected").each(function(){
+        selectedAnalytic = $(this).attr("value");
+        if(selectedAnalytic){
+            $('table').not("." + selectedCourse + "." + selectedAnalytic).hide();
+            $("." + selectedCourse + "." + selectedAnalytic).show();
+        } else{
+            $('table').hide();
+        }
+    });
+    }).change();
+  </script>
+</body>
+
+</html>
