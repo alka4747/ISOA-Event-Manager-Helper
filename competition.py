@@ -1,4 +1,6 @@
-from flask import Blueprint, request, abort, send_file
+from asyncore import read
+from flask import Blueprint, request, abort, send_file, render_template
+from numpy import printoptions
 from werkzeug.utils import secure_filename
 from operator import itemgetter
 from zipfile import ZipFile
@@ -10,6 +12,8 @@ import csv
 import tempfile
 import xlsxwriter
 import datetime
+import lapcombat
+import json
 
 competition = Blueprint('competition', __name__)
 
@@ -440,7 +444,8 @@ def save_official_results_to_csv(xml_data, file_name):
 
         # write punch data
         for competitor_data in xml_data["competitors_data"]:
-             # Clean name strings
+            # Clean name strings
+            # print(competitor_data[3])
             if competitor_data[3] is not None:
                 competitor_data[3] = "".join(i for i in competitor_data[3] if not i in BAD_CHARACTERS)
             if competitor_data[4] is not None:
@@ -449,11 +454,19 @@ def save_official_results_to_csv(xml_data, file_name):
     return csvfile
 
 def generate_isoa_results_file_from_iof_xml(uploaded_results_file, directory):
-            # parse xml file
-        xml_data = parse_iof_results_xml(uploaded_results_file)
-        # store results in a csv file
-        return save_official_results_to_csv(xml_data, os.path.join(directory,'official_results.csv'))
-        
+    # parse xml file
+    xml_data = parse_iof_results_xml(uploaded_results_file)
+    # store results in a csv file
+    return save_official_results_to_csv(xml_data, os.path.join(directory,'official_results.csv'))
+
+def generate_lapcombat_html_file_from_iof_xml(uploaded_results_file, directory):
+    event = lapcombat.calculateEvent(uploaded_results_file)
+    for i in range(len(event.categoryList)):
+        print(event.categoryList[i].categoryName)
+    lapcombat_html_file_content = render_template('lapcombat.html', eventName=event.getEventName(), categories=event.categoryList)
+    with open(os.path.join(directory,'lapcombat.html'), 'w', encoding="utf8") as file:
+        file.write(lapcombat_html_file_content)
+
 
 @competition.route('/generate-preperation-files', methods=['POST'])
 def generate_preperation_files():
@@ -557,7 +570,7 @@ def generate_preperation_files():
             return send_file(content,
                              as_attachment=True, download_name='competition_files.zip')
 
-@competition.route('/generate-isoa-results-file', methods=['POST'])
+@competition.route('/generate-post-competition-files', methods=['POST'])
 def generate_isoa_results_file():
     if request.method == 'POST':
         platform = request.form['platform']
@@ -566,10 +579,19 @@ def generate_isoa_results_file():
         with tempfile.TemporaryDirectory() as tmpdir:
             uploaded_results_file = request.files["resultsFile"]
             validate_results_user_input(uploaded_results_file)
-            generate_isoa_results_file_from_iof_xml(uploaded_results_file, tmpdir)
-            # send official results to client
-            with open(os.path.join(tmpdir, "official_results.csv"), "rb") as f:
+            uploaded_results_file.save(os.path.join(tmpdir, "iof_results.xml"))
+            generate_isoa_results_file_from_iof_xml(os.path.join(tmpdir, "iof_results.xml"), tmpdir)
+            # generate_lapcombat_html_file_from_iof_xml(os.path.join(tmpdir, "iof_results.xml"), tmpdir)
+
+             # writing files to a zipfile
+            with ZipFile(os.path.join(tmpdir,'official_results_and_lapcombat.zip'),'w') as zip:
+                file_paths = [os.path.join(tmpdir, "official_results.csv")]
+                # file_paths = [os.path.join(tmpdir, "official_results.csv")]
+                for file in file_paths:
+                    zip.write(file, os.path.basename(file))
+            # Send zip to client
+            with open(os.path.join(tmpdir, "official_results_and_lapcombat.zip"), "rb") as f:
                 content = io.BytesIO(f.read())
             return send_file(content,
                              as_attachment=True,
-                             download_name="official_results.csv")
+                             attachment_filename='official_results_and_lapcombat.zip')
