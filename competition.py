@@ -16,6 +16,7 @@ competition = Blueprint('competition', __name__)
 
 ALLOWED_STARTLIST_FILE_EXTENSIONS = [".xlsx"]
 ALLOWED_RESULTS_FILE_EXTENSIONS = [".xml"]
+BAD_CHARACTERS = ["\u202c", "\u200e", "\u202b", "ê"]
 
 def validate_startlist_files_user_input(startlist_file):
     filename = secure_filename(startlist_file.filename)
@@ -440,13 +441,17 @@ def save_official_results_to_csv(xml_data, file_name):
 
         # write punch data
         for competitor_data in xml_data["competitors_data"]:
+             # Clean name strings
+            if competitor_data[3] is not None:
+                competitor_data[3] = "".join(i for i in competitor_data[3] if not i in BAD_CHARACTERS)
+            if competitor_data[4] is not None:
+                competitor_data[4] = "".join(i for i in competitor_data[4] if not i in BAD_CHARACTERS)
             writer.writerow(competitor_data)
     return csvfile
 
 def generate_isoa_results_file_from_iof_xml(uploaded_results_file, directory):
-        uploaded_results_file.save(os.path.join(directory, "iof_results.xml"))
-        # parse xml file
-        xml_data = parse_iof_results_xml(os.path.join(directory, "iof_results.xml"))
+            # parse xml file
+        xml_data = parse_iof_results_xml(uploaded_results_file)
         # store results in a csv file
         return save_official_results_to_csv(xml_data, os.path.join(directory,'official_results.csv'))
         
@@ -518,7 +523,9 @@ def generate_preperation_files():
                     start_list_writer.writerow(headers_row)
                     # Write new start list to CSV
                     for row in startlist_list:
-                        official_start_list_row = [row[0], row[1], row[2], row[3], row[6]]
+                        # Clean name strings
+                        name = "".join(i for i in row[1] if not i in BAD_CHARACTERS)
+                        official_start_list_row = [row[0], name, row[2], row[3], row[6]]
                         start_list_writer.writerow(official_start_list_row)
             elif platform == "si-droid":
                 # Write start list for si-droid
