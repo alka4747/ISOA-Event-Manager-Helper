@@ -555,8 +555,7 @@ def generate_preperation_files():
             with open(os.path.join(tmpdir, "competition_files.zip"), "rb") as f:
                 content = io.BytesIO(f.read())
             return send_file(content,
-                             as_attachment=True,
-                             attachment_filename='competition_files.zip')
+                             as_attachment=True, download_name='competition_files.zip')
 
 @competition.route('/generate-isoa-results-file', methods=['POST'])
 def generate_isoa_results_file():
@@ -573,4 +572,4 @@ def generate_isoa_results_file():
                 content = io.BytesIO(f.read())
             return send_file(content,
                              as_attachment=True,
-                             attachment_filename="official_results.csv")
+                             download_name="official_results.csv")
