@@ -1,5 +1,4 @@
 from flask import Blueprint, request, abort, send_file
-from numpy import printoptions
 from werkzeug.utils import secure_filename
 from operator import itemgetter
 from zipfile import ZipFile
