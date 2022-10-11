@@ -530,14 +530,14 @@ def generate_preperation_files():
                 # Write start list for si-droid
                 with open(os.path.join(tmpdir,"StartList.csv"), 'w', newline='', encoding="utf8") as official_start_list:
                     start_list_writer = csv.writer(official_start_list)
-                    headers_row = ["SI Number", "Name", "Club", "Id", "Course"]
+                    headers_row = ["SI Number", "Name", "Club", "Id"]
                     start_list_writer.writerow(headers_row)
                     # Write new start list to CSV
                     for row in startlist_list:
                         name = row[1].rsplit(' ', 1)
                         name.insert(0, name.pop())
                         name = ' '.join(name)
-                        official_start_list_row = [row[6], name, row[2], row[0], row[3]]
+                        official_start_list_row = [row[6], name, row[2], row[0]]
                         if str(row[6]) != "" and str(row[6]) != "0":
                             start_list_writer.writerow(official_start_list_row)
             
