@@ -581,11 +581,11 @@ def generate_isoa_results_file():
             validate_results_user_input(uploaded_results_file)
             uploaded_results_file.save(os.path.join(tmpdir, "iof_results.xml"))
             generate_isoa_results_file_from_iof_xml(os.path.join(tmpdir, "iof_results.xml"), tmpdir)
-            # generate_lapcombat_html_file_from_iof_xml(os.path.join(tmpdir, "iof_results.xml"), tmpdir)
+            generate_lapcombat_html_file_from_iof_xml(os.path.join(tmpdir, "iof_results.xml"), tmpdir)
 
              # writing files to a zipfile
             with ZipFile(os.path.join(tmpdir,'official_results_and_lapcombat.zip'),'w') as zip:
-                file_paths = [os.path.join(tmpdir, "official_results.csv")]
+                file_paths = [os.path.join(tmpdir, "official_results.csv"), os.path.join(tmpdir, 'lapcombat.html')]
                 # file_paths = [os.path.join(tmpdir, "official_results.csv")]
                 for file in file_paths:
                     zip.write(file, os.path.basename(file))

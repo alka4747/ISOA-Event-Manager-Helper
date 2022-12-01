@@ -4,7 +4,51 @@ import csv
 import statistics
 import copy
 
+# # File version: 0.5
+# # 18.10.21
 
+# # Insert the IOF V.3.0 result file path here.
+# # resultFile = '/public/Nivut_CD/Lapcombat/XML_Results/ben_shemen_east_21_result_list_Family_First.xml'
+# # resultFile = '/public/Nivut_CD/Lapcombat/shoham_2018_result_list_Family_First.xml'
+# # resultFile = '/public/Nivut_CD/Lapcombat/Shoham_2021_results-IOFv3.xml'
+# # resultFile = '/public/Nivut_CD/Lapcombat/Holon_2021_results-IOFv3.xml'
+# # resultFile = '/public/Nivut_CD/Lapcombat/XML_Results/Shimshit_SI_Droid_results-IOFv3.xml'
+# # resultFile = '/public/Nivut_CD/Lapcombat/XML_Results/Kfar_Hahoresh_SI_Droid_results-IOFv3.xml'
+# # resultFile = '/public/Nivut_CD/Lapcombat/XML_Results/Nazareth_SI_Droid_results-IOFv3_Original.xml'
+# # resultFile = '/public/Nivut_CD/Lapcombat/Ramat_Hanadiv_2021_results-IOFv3.xml'
+# # resultFile = '/public/Nivut_CD/Lapcombat/Hasolelim_2022_results-IOFv3.xml'
+# # resultFile = '/public/Nivut_CD/Lapcombat/Elyaqim_2022_results-IOFv3.xml'
+# resultFile = '/public/Nivut_CD/Lapcombat/Kfar_Saba_Hayeruka_2022_results-IOFv3.xml'
+# # resultFile = '/public/Nivut_CD/Hasharon_Website/Github/hasharonoc.github.io/events/Caesaria_2022/caesaria_22_result_list.xml'
+# # resultFile = '/public/Nivut_CD/Hasharon_Website/Github/hasharonoc.github.io/events/Ben_Shemen_2022/ben_shemen_22_result_list.xml'
+# xmlns = '{http://www.orienteering.org/datastandard/3.0}'  # Required for identifying xml tags in the results file.
+# mulkaDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S%z"
+# SIDroidDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S.%f%z"
+# SIDroidTimeStampsDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S"
+# classes = []
+
+# tree = ET.parse(resultFile)
+# root = tree.getroot()
+# app = root.attrib.get('creator')  # Find the application that created the results file.
+# fileCreationTime = root.get('createTime')  # Get the file creation time. This will serve as a base for time events
+# defaultStartTime = dt.datetime(2021, 1, 1)
+# luckyControlThresholdSeconds = 10  # This is the time threshold for calculating whether the runner saw someone punching
+# # the control, thus revealing its location.
+# numberOfControlsForGroupOrienteeringThreshold = 5  # This is the number of consecutive joint punches threshold for
+# # considering two runners as tracking each other.
+# mulka = False
+# if app[0:5] == 'Mulka':
+#     mulka = True  # Check if the results came from Mulka or not
+# if mulka:
+#     datetimeStrptimeString = mulkaDatetimeStrptimeString
+#     fct = dt.datetime.strptime(fileCreationTime, datetimeStrptimeString)  # Convert to datetime object
+#     # Make a copy of the file creation time in order to establish an arbitrary event start time
+#     baseEventStart = dt.datetime(fct.year, fct.month, fct.day, hour=6, minute=0, second=0)
+# else:
+#     datetimeStrptimeString = SIDroidDatetimeStrptimeString
+#     fct = dt.datetime.strptime(fileCreationTime, datetimeStrptimeString)  # Convert to datetime object
+#     # Make a copy of the file creation time in order to establish an arbitrary event start time
+#     baseEventStart = dt.datetime(fct.year, fct.month, fct.day, hour=6, minute=0, second=0)
 
 
 class Competitor:
@@ -143,6 +187,7 @@ class Event:
             return e.place
 
         categories = []
+        print(resFile)
         classes = self.root.findall(Event.xmlns + 'ClassResult')  # Collect all categories/classes
         for x in classes:
             if (x[0][0].text != 'עממי') and (x[0][0].text != 'No course'):  # Exclude non-competitive classes
@@ -535,6 +580,9 @@ def calculateLapCombat(ev):
             numberOfLegsConsideredForCruisingSpeedCalculation = 0
             if not comp.dns and len(comp.legSplitsSeconds) > 0:
                 while accumulatedLegWeights < 0.5:
+                    print(numberOfLegsConsideredForCruisingSpeedCalculation)
+                    print(indices)
+                    print(comp.firstName + " " + comp.lastName)
                     accumulatedLegWeights += ev.categoryList[categoryIndex].legWeights[indices \
                         [numberOfLegsConsideredForCruisingSpeedCalculation]]
                     timeAccumulator += comp.legSplitsSeconds[indices[numberOfLegsConsideredForCruisingSpeedCalculation]]
@@ -605,13 +653,13 @@ def formatLapCombatItems(ev):
                 if t > 0:
                     currentCompetitor.cumulativeLegTimes_Text.append(str(dt.timedelta(seconds=t)))
                 else:
-                    currentCompetitor.cumulativeLegTimes_Text.append('-')
+                    currentCompetitor.cumulativeLegTimes_Text.append('X')
             currentCompetitor.interimPlace_Text.clear()
             for ip in currentCompetitor.interimPlace:
                 if ip > 0:
                     currentCompetitor.interimPlace_Text.append(str(ip))
                 else:
-                    currentCompetitor.interimPlace_Text.append('-')
+                    currentCompetitor.interimPlace_Text.append('X')
             currentCompetitor.legSplits_Text.clear()
             for ls in currentCompetitor.legSplitsSeconds:
                 if ls > 0:
@@ -623,7 +671,7 @@ def formatLapCombatItems(ev):
                 if pil > 0:
                     currentCompetitor.placeInLeg_Text.append(str(pil))
                 else:
-                    currentCompetitor.placeInLeg_Text.append('-')
+                    currentCompetitor.placeInLeg_Text.append('X')
             if not currentCompetitor.dns:
                 if not currentCompetitor.dnf and not currentCompetitor.disq:
                     currentCompetitor.totalTime_Text = str(dt.timedelta(seconds=
@@ -683,7 +731,7 @@ def formatLapCombatItems(ev):
                 if cs > 0:
                     currentCompetitor.cruisingSpeeds_Text.append(str(round(cs * 100.0, 1)))
                 else:
-                    currentCompetitor.cruisingSpeeds_Text.append('-')
+                    currentCompetitor.cruisingSpeeds_Text.append('X')
             currentCompetitor.legMistakeTimes_Text.clear
             for lmt in currentCompetitor.legMistakeTimes:
                 if currentCompetitor.legSplitsSeconds[currentCompetitor.legMistakeTimes.index(lmt)] > 0:
@@ -692,7 +740,7 @@ def formatLapCombatItems(ev):
                     else:
                         currentCompetitor.legMistakeTimes_Text.append('-' + str(dt.timedelta(seconds=round(abs(lmt)))))
                 else:
-                    currentCompetitor.legMistakeTimes_Text.append('-')
+                    currentCompetitor.legMistakeTimes_Text.append('X')
 
 
 def getLucky(ev, luckyControlThreshold):  # Calculate
@@ -773,8 +821,56 @@ def trainSpotting(ev, trainThreshold):  # Calculate
         # for currentTrainLength in range(len(cat.course.controls)):
         #     cat.trains.append([])
         cat.trainsByControls = list()
-        cat.trainsByControls = getTrains(clusters, cat, cat.possibleTrains[-1])  # Get all the trains recursively from the
+        # cat.trainsByControls = getTrains(clusters, cat, cat.possibleTrains[-1])  # Get all the trains recursively from the
+        getTrains(clusters, cat, cat.possibleTrains[-1], trainThreshold)  # Get all the trains recursively from the
         # longest train possible in the course.
+        realTrains = list()
+        for train in cat.trainsByControls:
+            if len(train[0]) > 1 and len(train) > 1:
+                realTrains.append(train)
+        # Extract the trains in which the competitor is a part of
+        for comp in cat.competitors:
+            comp.trains = list()
+            comp.filteredTrains = list()
+            for train in realTrains:
+                for car in train:  # Traverse all "train cars" for the current course segment.
+                    if train.index(car) > 0:  # Skip the first item in the train - the controls defining the segment.
+                        for punch in car:  # Check each punch for the competitor.
+                            try:
+                                if comp in punch:
+                                    comp.trains.append(train)
+                                    break
+                            except:
+                                pass
+            for compTrain in comp.trains:
+                temp_train = list()
+                for car in compTrain:
+                    if compTrain.index(car) == 0:
+                        temp_train.append(car)
+                    else:
+                        for punch in car:
+                            if comp in punch:
+                                temp_train.append(car)
+                                break
+                comp.filteredTrains.append([])
+                for i in temp_train:
+                    comp.filteredTrains[-1].append(i)
+            comp.filteredTrains.sort(key=lambda x: [len(x[0])], reverse=True)
+            trueTrains = list()
+            comp.trueTrains = list()
+            for index in range(len(comp.filteredTrains)):
+                found = False
+                if index == 0:
+                    trueTrains.append(comp.filteredTrains[index])
+                else:
+                    for item in trueTrains:
+                        if comp.filteredTrains[index][0][0] in item[0]:
+                            found = True
+                            break
+                    if not found:
+                        trueTrains.append(comp.filteredTrains[index])
+            for item in trueTrains:
+                comp.trueTrains.append(item)
     pass
 
     #         for item in cont:
@@ -791,7 +887,7 @@ def trainSpotting(ev, trainThreshold):  # Calculate
     # pass
 
 
-def getTrains(clusters, cat, train):
+def getTrains(clusters, cat, train, trainThreshold):
     # if cat.trains[len(train)].index(train)[0] == True:
     #     return cat.trains[len(train)]
     print("Incoming Train: ", train)
@@ -816,19 +912,23 @@ def getTrains(clusters, cat, train):
         #                  )
         # )
         print("Big train, have to split...")
-        littleLeftTrain = getTrains(clusters, cat, train[0:1])
+        littleLeftTrain = getTrains(clusters, cat, train[0:1], trainThreshold)
         print("Little left Train (len>1): ", littleLeftTrain[0][0])
-        bigRightTrain = getTrains(clusters, cat, train[1:])
+        bigRightTrain = getTrains(clusters, cat, train[1:], trainThreshold)
         print("Big Right Train (len>1): ", bigRightTrain[0][0])
-        leftIntersection = intersection(littleLeftTrain, bigRightTrain)
+        print("Insering from left.")
+        left = True
+        leftIntersection = intersection(littleLeftTrain, bigRightTrain, trainThreshold)
         print("Left intersection: ", leftIntersection[0])
-        bigLeftTrain = getTrains(clusters, cat, train[:(len(train)-1)])
+        bigLeftTrain = getTrains(clusters, cat, train[:(len(train) - 1)], trainThreshold)
         print("Big left Train (len>1): ", bigLeftTrain[0][0])
-        littleRightTrain = getTrains(clusters, cat, train[-1:])
+        littleRightTrain = getTrains(clusters, cat, train[-1:], trainThreshold)
         print("Little Right Train (len>1): ", littleRightTrain[0][0])
-        rightIntersection = intersection(bigLeftTrain, littleRightTrain)
+        print("Appending from right.")
+        left = False
+        rightIntersection = intersection(bigLeftTrain, littleRightTrain, trainThreshold)
         print("Right intersection: ", rightIntersection[0])
-        cat.trainsByControls.append(intersection(leftIntersection, rightIntersection))
+        cat.trainsByControls.append(intersection(leftIntersection, rightIntersection, trainThreshold))
         return cat.trainsByControls[-1]
 
         # cat.trains[len(train)].append(intersection(getTrains(clusters, cat, train[0]),
@@ -839,7 +939,7 @@ def getTrains(clusters, cat, train):
         # return cat.trains[len(train)]
 
 
-def getIndex (twoDList, item):
+def getIndex(twoDList, item):
     for x in twoDList:
         if x[0] == item:
             return twoDList.index(x)
@@ -847,11 +947,214 @@ def getIndex (twoDList, item):
     return None
 
 
-def intersection(trainLeft, trainRight):
-    stam = copy.deepcopy(trainLeft)
-    stam[0].append(trainRight[0][0])
-    stam.append(trainRight[1:])
-    return stam
+def intersection(trainLeft, trainRight, trainThreshold):
+    """This function takes two clusters (trains) and outputs a single combined cluster (train) consisting of punches
+    that belong in both clusters (trains) """
+    resultingTrain = [[]]  # This will store the resulting train
+    for ctll in trainLeft[0]:  # Collect all the control numbers from the left train
+        resultingTrain[0].append(ctll)
+    for ctlr in trainRight[0]:  # Add the control numbers that are not in the left train from the right train
+        if ctlr not in resultingTrain[0]:
+            resultingTrain[0].append(ctlr)
+    tagLeft = True  # This marks the first item in the left train - the control number list
+    for leftCluster in trainLeft:  # Go over all the clusters in the left train
+        if tagLeft:  # If this is the control number list, then skip it
+            tagLeft = False
+            continue
+        else:  # Otherwise, for each left cluster, go over the right clusters
+            tagRight = True  # This marks the first item in the right train - the control number list
+            for rightCluster in trainRight:  # Go over all the clusters in the left train
+                matches = list()  # Establish a list for competitors that exist in both left and right clusters
+                tempCluster = list()  # Establish a list of punches that belong to competitors with a match
+                if tagRight:  # If this is the control number list, then skip it
+                    tagRight = False
+                    continue
+                else:  # Otherwise, for each punch in the left cluster, try to match a punch in the right cluster
+                    # belonging to the same competitor
+                    for leftPunch in leftCluster:
+                        for rightPunch in rightCluster:
+                            try:
+                                if leftPunch[2] == rightPunch[2]:  # If the punches belong to the same competitor
+                                    if leftPunch[2] not in matches:  # and, if a match was not detected yet for this
+                                        # competitor,
+                                        matches.append(leftPunch[2])  # Then, add the competitor to the matches list
+                                    tempCluster.append(leftPunch)  # Add the punch from the left cluster to the list
+                                    tempCluster.append(rightPunch)  # Add the punch from the right cluster to the list
+                            except:
+                                print("Right cluster:", rightCluster)
+                                print("Left cluster:", leftCluster)
+                if len(matches) > 1:  # If the matches list contains more than one competitor, then there is a train
+                    resultingTrain.append([])  # Initialize the punches list for the train
+                    for punch in tempCluster:  # Go over the punches that were collected
+                        if punch not in resultingTrain[-1]:  # and, if the punch is not already in the list,
+                            try:
+                                resultingTrain[-1].append(punch)  # then add the punch to the train
+                            except:
+                                pass
+    return validateTrain(resultingTrain, trainThreshold)  # Make sure that the resulting train is valid in terms of a
+    # consistent time difference among the competitors allegedly in the train
+
+
+def validateTrain(incomingTrain, trainThreshold):
+    trainLength = len(incomingTrain[0])
+    tempTrain = list()
+    earlyCluster = list()
+    lateCluster = list()
+    earlyClusterCompetitors = list()
+    lateClusterCompetitors = list()
+    # subCluster = list()
+    splitDetected = False
+    # subCluster.append([])
+    controlCluster = True  # Marks the first list which consists of the control numbers of the train
+    # tempTrain.append(incomingTrain[0])
+    for cluster in incomingTrain:
+        splitDetected = False
+        earlyCluster.clear()
+        lateCluster.clear()
+        earlyClusterCompetitors.clear()
+        lateClusterCompetitors.clear()
+        if controlCluster:
+            tempTrain.append(cluster)  # Set the train's identification (controls list).
+            controlCluster = False
+        else:
+            subCluster = list() ###################################
+            tempCluster = list()  # This is the cluster that has the punches without the controls list
+            for punch in cluster:  # Add all the punches in the cluster to a temporary list
+                tempCluster.append(punch)
+            # tempCluster.sort(key=lambda x: (x[0], x[3]))    # Sort by control number and then by punch time.
+            tempCluster.sort(key=lambda x: x[3])  # Sort by punch time.
+            currentControl = tempCluster[0][0]  # Establish the current control
+            currentTimeTag = tempCluster[0][3]  # Establish the current time tag to which others are compared to
+            for punch in tempCluster:  # Go over each punch in the cluster
+                if punch[3] - currentTimeTag <= trainThreshold:  # If the punch is within the threshold
+                    # subCluster[-1].append(punch)
+                    subCluster.append(punch)  # Add the punch to the current subcluster
+                    earlyClusterCompetitors.append(punch[2])
+                    currentTimeTag = punch[3]  # Move the time tag to the current one
+                else:   # If the time tag is too far apart, check if we are now on a different control
+                    if punch[0] == currentControl:  # If still on the same control, split the cluster and recheck it
+                        # tempTrain.append(validateCluster(stripCompetitor(cluster, punch[2]), trainThreshold,
+                        #                                  trainLength))
+                        tempTrain.append(validateCluster(buildCluster(cluster, earlyClusterCompetitors, early=True),
+                                                         trainThreshold, trainLength))
+                        tempTrain.append(validateCluster(buildCluster(cluster, earlyClusterCompetitors, early=False),
+                                                         trainThreshold, trainLength))
+                        splitDetected = True
+                        break   # There is no more point in checking the cluster
+                    else:   # If we are on a different control, append the punch to the cluster and reset the control
+                        # and time tag
+                        subCluster.append(punch)
+                        earlyClusterCompetitors.clear()
+                        lateClusterCompetitors.clear()
+                        earlyClusterCompetitors.append(punch[2])
+                        currentControl = punch[0]
+                        currentTimeTag = punch[3]
+            if splitDetected:
+                continue
+            else:
+                tempTrain.append(tempCluster)
+
+
+def validateCluster(cluster, trainThreshold, trainLength):
+    returnedClusters = list()
+    valid = True
+    if containsSingleCompetitor(cluster):
+        return []
+    else:
+        cluster.sort(key=lambda x: x[3])  # Make sure that the cluster is sorted according to the time tag
+        previousTimeTag = cluster[0][3]  # Establish a baseline for time comparisons
+        currentControl = cluster[0][0]  # Establish a base control
+        earlyClusterCompetitors = list()  # Initialize a list of competitors up to a comparison failure
+        earlyCluster = list()  # Initialize a list of punches that belong to competitors up to the comparison failure
+        lateCluster = list()  # Initialize a list of punches that belong to competitors from the comparison failure
+        # onwards
+        for punch in cluster:
+            if punch[3] - previousTimeTag <= trainThreshold:
+                previousTimeTag = punch[3]
+                # if punch[2] not in earlyClusterCompetitors:
+                earlyClusterCompetitors.append(punch[2])
+                # continue
+            else:
+                if punch[0] == currentControl:
+                    valid = False
+                    earlyCluster = buildCluster(cluster, earlyClusterCompetitors, early=True)
+                    returnedClusters.append(validateCluster(earlyCluster, trainThreshold))
+                    lateCluster = buildCluster(cluster, earlyClusterCompetitors, early=False)
+                    returnedClusters.append(validateCluster(lateCluster, trainThreshold))
+                    # for item in cluster:
+                    #     if item not in earlyCluster:
+                    #         lateCluster.append(item)
+                    # return validateCluster(stripCompetitor(cluster, punch[2]), trainThreshold)
+                else:
+                    currentControl = punch[0]
+                    previousTimeTag = punch[3]
+                    earlyClusterCompetitors.clear()
+                    earlyClusterCompetitors.append(punch[2])
+                    earlyCluster.clear()
+                    lateCluster.clear()
+        if valid:
+            return cluster
+        else:
+            return cleaned(returnedClusters, trainLength)
+
+
+def cleaned(clusters, trainLength):
+    result = list()
+    for cluster in clusters:
+        if len(cluster) < 2 * trainLength:
+            continue
+        else:
+            result.append(cluster)
+    return result
+
+
+def buildCluster(cluster, competitorList, early):
+    updatedCluster = list()
+    isRelevantPunch = list()
+    for item in cluster:
+        isRelevantPunch.append(True)
+    if early:
+        for comp in competitorList:
+            for punch in cluster:
+                if punch[2] == comp:
+                    updatedCluster.append(punch)
+    else:
+        for punch in cluster:
+            for comp in competitorList:
+                if punch[2] == comp:
+                    isRelevantPunch[cluster.index(punch)] = False
+                # updatedCluster.append(punch)
+        for punch in cluster:
+            if isRelevantPunch[cluster.index(punch)]:
+                updatedCluster.append(punch)
+    return updatedCluster
+
+
+def containsSingleCompetitor(cluster):
+    if len(cluster) == 0:  # Check to see if the cluster is empty. If so, return True
+        return True
+    else:  # Otherwise, if the competitor has not been added previously to the list, add it.
+        listOfCompetitors = list()
+        for punch in cluster:
+            if punch[2] not in listOfCompetitors:
+                listOfCompetitors.append(punch[2])
+        if len(listOfCompetitors) > 1:  # Check to see how many competitors are in the list.
+            return False
+        else:
+            return True
+
+
+def stripCompetitor(cluster, competitor):
+    if len(cluster) == 0:  # Not likely, but in case there is an empty cluster...
+        return []
+    else:
+        modifiedCluster = list()  # Create a list that keeps the other competitors
+        for punch in cluster:  # Scan the punches
+            if punch[2] == competitor:  # If the punch belongs to the competitor that is to be stripped, skip it
+                continue
+            else:
+                modifiedCluster.append(punch)  # Otherwise, add the punch to the modified cluster.
+    return modifiedCluster
 
 
 def getClusterIndex(clusters, controlNumber):
@@ -862,27 +1165,39 @@ def getClusterIndex(clusters, controlNumber):
 
 
 def detectClusters(controlPunchList, trainThreshold):
-    # clusters = [[controlPunchList[0][0],controlPunchList[0][1]]]
-    clusters = [[controlPunchList[0][0]]]
-    currentCluster = [controlPunchList[0]]
-    for punch in controlPunchList:
-        if controlPunchList.index(punch) == 0:
+    """ This function scans consecutive punches at a control and groups punches made within the train threshold of
+    each other. The function returns the detected clusters. """
+    clusters = [[controlPunchList[0][0]]]  # Initialize the cluster list by appending the control number.
+    currentCluster = [controlPunchList[0]]  # Initialize the current cluster with the first punch.
+    for punch in controlPunchList:  # Go over the list of punches and test for punches made close to each other.
+        if controlPunchList.index(punch) == 0:  # If this is the first punch in the list, then it is the first reference
             lastPunch = punch
         else:
-            if punch[3] - lastPunch[3] <= trainThreshold:
-                currentCluster.append(punch)
-                lastPunch = punch
-            else:
-                if len(currentCluster) <= 1:
-                    currentCluster.clear()
-                    currentCluster.append(punch)
-                    lastPunch = punch
-                else:
-                    clusters.append(copy.deepcopy(currentCluster))
-                    currentCluster.clear()
-                    currentCluster.append(punch)
-                    lastPunch = punch
+            if punch[3] - lastPunch[3] <= trainThreshold:  # Test if the current punch is within trainThreshold seconds
+                # of the last punch.
+                currentCluster.append(punch)  # If so, add the current punch to the current cluster.
+                lastPunch = punch  # Establish a new refernce for the next punch.
+            else:  # If the current punch is too far away, then this means that the current cluster has ended.
+                if len(currentCluster) <= 1:  # If the current cluster only contains one punch, then it should be
+                    # discarded and a new cluster should be started.
+                    currentCluster.clear()  # Establish a new clean cluster.
+                    currentCluster.append(punch)  # Insert the current punch as the first in the new cluster.
+                    lastPunch = punch  # Establish a new reference for time of punch.
+                else:  # If the current cluster includes more than one punch, then it is a valid cluster.
+                    temp = list()  # Establish a temporary list for copying puroposes.
+                    clusters.append(myDeepCopy(temp, currentCluster))  # Deep copy the current cluster into the
+                    # cluster list.
+                    currentCluster.clear()  # Reset the current cluster.
+                    currentCluster.append(punch)  # Start a new current cluster with the current punch.
+                    lastPunch = punch  # Establish a new reference for time of punch.
     return clusters
+
+
+def myDeepCopy(targetList, sourceList):
+    for punch in sourceList:
+        targetList.append(punch)
+    # targetList = copy.deepcopy(sourceList)
+    return targetList
 
 
 def calculatePossibleTrains(cat):
@@ -1081,3 +1396,22 @@ def calculateEvent(resultsFile):
     #     print(event.categoryList[3].course.legList[i])
     # print('Done!')
     return event
+
+# event = Event(resultFile)
+# # competitors = event.getCompetitors()
+# # categories = event.getCategoryNames()
+# print("Event name: " + event.eventName)
+# event.categoryList = event.getCategories()
+# calculateLapCombat(event)
+# biggestGainersLosers(event)
+# roadrunnerAndSwissClock(event)
+# getLucky(event, luckyControlThresholdSeconds)
+# formatLapCombatItems(event)
+# prepareDataForGraphing(event)
+# # clus = trainSpotting(event, 15)
+# # for i in range(len(event.categoryList[3].course.legList)):
+# #     print(event.categoryList[3].course.legList[i])
+# print('Done!')
+# # a = event.getCategories()
+# # print (a)
+# # print(competitors[0])
