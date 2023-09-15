@@ -15,7 +15,7 @@ competition = Blueprint('competition', __name__)
 
 ALLOWED_STARTLIST_FILE_EXTENSIONS = [".xlsx"]
 ALLOWED_RESULTS_FILE_EXTENSIONS = [".xml"]
-BAD_CHARACTERS = ["\u202c", "\u200e", "\u202b", "ê"]
+BAD_CHARACTERS = ["\u202c", "\u200e", "\u202b", "ê", "ü"]
 
 def validate_startlist_files_user_input(startlist_file):
     filename = secure_filename(startlist_file.filename)
@@ -567,7 +567,7 @@ def generate_isoa_results_file():
             uploaded_results_file = request.files["resultsFile"]
             validate_results_user_input(uploaded_results_file)
             generate_isoa_results_file_from_iof_xml(uploaded_results_file, tmpdir)
-            # send fficial results to client
+            # send official results to client
             with open(os.path.join(tmpdir, "official_results.csv"), "rb") as f:
                 content = io.BytesIO(f.read())
             return send_file(content,
