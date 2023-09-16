@@ -464,9 +464,9 @@ def generate_lapcombat_html_file_from_iof_xml(uploaded_results_file, directory):
     for i in range(len(event.categoryList)):
         print(event.categoryList[i].categoryName)
     lapcombat_html_file_content = render_template('lapcombat.html', eventName=event.getEventName(), categories=event.categoryList)
-    with open(os.path.join(directory,'lapcombat.html'), 'w', encoding="utf8") as file:
+    with open(os.path.join(directory,'lapcombat.html'), 'w', encoding="cp1255") as file:
         file.write(lapcombat_html_file_content)
-
+    # return lapcombat_html_file_content # DEBUG ONLY
 
 @competition.route('/generate-preperation-files', methods=['POST'])
 def generate_preperation_files():
@@ -581,8 +581,8 @@ def generate_isoa_results_file():
             validate_results_user_input(uploaded_results_file)
             uploaded_results_file.save(os.path.join(tmpdir, "iof_results.xml"))
             generate_isoa_results_file_from_iof_xml(os.path.join(tmpdir, "iof_results.xml"), tmpdir)
+            # return generate_lapcombat_html_file_from_iof_xml(os.path.join(tmpdir, "iof_results.xml"), tmpdir) # DEBUG ONLY
             generate_lapcombat_html_file_from_iof_xml(os.path.join(tmpdir, "iof_results.xml"), tmpdir)
-
              # writing files to a zipfile
             with ZipFile(os.path.join(tmpdir,'official_results_and_lapcombat.zip'),'w') as zip:
                 file_paths = [os.path.join(tmpdir, "official_results.csv"), os.path.join(tmpdir, 'lapcombat.html')]
