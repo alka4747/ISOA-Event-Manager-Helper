@@ -61,32 +61,6 @@
       font-size: 18px;
     }
 
-    /* th {
-      background-color: green;
-    } */
-
-    /* th,
-    td {
-      text-align: left;
-      padding: 12px;
-    } */
-
-    /* tr {
-      border-bottom: 1px solid #ddd;
-    } */
-
-    /* tr.header {
-      background-color: green;
-    } */
-
-    /* .hover {
-      background-color: #f1f1f1;
-      cursor: pointer;
-    } */
-    /* .dataTables_wrapper .dataTables_scroll div.dataTables_scrollBody {
-      overflow-x: scroll !important;
-    } */
-
     th,
     td {
       white-space: nowrap;
@@ -105,9 +79,20 @@
       background-color: #ccffcc;
     }
 
+    td.bad {
+      background-color: #FFA07A;
+    }
+
+    td.very-bad {
+      background-color: #fd5c63;
+    }
+
+    td.catastrophe {
+      background-color: #D2122E;
+    }
+
     .header {
       background-color: white;
-      /* background-image: linear-gradient(315deg, #f5d020 0%, #f53803 74%); */
     }
 
     #searchContainerDiv {
@@ -133,8 +118,9 @@
   <h2 style="text-align: center;">Lapcombat {{eventName}}</h2>
   <div id="searchContainerDiv">
     <select name="anayltic" class="btn-group my-select" id="selectAnalytic">
-      <option value="splitsTable">Splits Analysis</option>
-      <option value="mistakesTable">Mistakes Analysis</option>
+      <option value="splits">Splits Analysis</option>
+      <option value="mistakes">Mistakes Analysis</option>
+      <option value="standouts">Standouts</option>
     </select>
     <div id="filterCourseContainerDiv">
       {% for i in range(categories|length) %}
@@ -167,8 +153,14 @@
               <th data-orderable="false">#</th>
               <th class="targetHeaderCell" data-orderable="false">Name</th>
               <th>Total Time</th>
+              <th class="mistakes">Ideal Time</th>
+              <th class="mistakes">Speed Index</th>
+              <th class="mistakes">Mistake Ratio</th>
               {% for leg in categories[i].course.legList %}
-              <th>{{leg}}</th>
+              <th class="splits">{{leg}}</th>
+              {% endfor %}
+              {% for leg in categories[i].course.legList %}
+              <th class="mistakes">{{leg}}</th>
               {% endfor %}
             </tr>
           </thead>
@@ -176,25 +168,54 @@
             {% for competitor in categories[i].competitors %}
             <tr>
               <td>{{competitor.place_Text}}</td>
-              <td>{{competitor.firstName}} {{competitor.lastName}} <br />{% if None == competitor.club %} (חיצוני) {% else %} ({{ competitor.club }}) {% endif %}</td>
+              <td>{{competitor.firstName}} {{competitor.lastName}} <br />{% if None == competitor.club %} (חיצוני) {%
+                else %} ({{ competitor.club }}) {% endif %}</td>
               <td>{{competitor.totalTime_Text}}</td>
+              <td class="mistakes">{{competitor.idealFinishTime_Text}}</td>
+              <td class="mistakes">{{competitor.nominalCruisingSpeed_Text}}</td>
+              <td class="mistakes">{{competitor.mistakeRatioPercent_Text}}</td>
               {% for i in range(competitor.legSplits_Text|length) %}
               {% if '3' == competitor.placeInLeg_Text[i] %}
-              <td class="third">{{competitor.legSplits_Text[i]}} ({{competitor.placeInLeg_Text[i]}}) <br />
+              <td class="third splits">{{competitor.legSplits_Text[i]}} ({{competitor.placeInLeg_Text[i]}}) <br />
                 {{ competitor.cumulativeLegTimes_Text[i] }} ({{ competitor.interimPlace_Text[i] }})
               </td>
               {% elif '2' == competitor.placeInLeg_Text[i] %}
-              <td class="second">{{competitor.legSplits_Text[i]}} ({{competitor.placeInLeg_Text[i]}}) <br />
+              <td class="second splits">{{competitor.legSplits_Text[i]}} ({{competitor.placeInLeg_Text[i]}}) <br />
                 {{ competitor.cumulativeLegTimes_Text[i] }} ({{ competitor.interimPlace_Text[i] }})
               </td>
               {% elif '1' == competitor.placeInLeg_Text[i] %}
-              <td class="first">{{competitor.legSplits_Text[i]}} ({{competitor.placeInLeg_Text[i]}}) <br />
+              <td class="first splits">{{competitor.legSplits_Text[i]}} ({{competitor.placeInLeg_Text[i]}}) <br />
                 {{ competitor.cumulativeLegTimes_Text[i] }} ({{ competitor.interimPlace_Text[i] }})
               </td>
               {% else %}
-              <td>{{competitor.legSplits_Text[i]}} ({{competitor.placeInLeg_Text[i]}}) <br />
+              <td class="splits">{{competitor.legSplits_Text[i]}} ({{competitor.placeInLeg_Text[i]}}) <br />
                 {{ competitor.cumulativeLegTimes_Text[i] }} ({{ competitor.interimPlace_Text[i] }})
               </td>
+              {% endif %}
+              {% endfor %}
+              {% for i in range(competitor.legSplits_Text|length) %}
+              {% if competitor.legMistakeTimes|length > 0 %}
+                {% if (30 <= competitor.legMistakeTimes[i] | int) and (60 > competitor.legMistakeTimes[i] | int) %}
+                <td class="mistakes bad">{{competitor.legMistakeTimes_Text[i]}}<br />
+                  {{ competitor.cruisingSpeeds_Text[i] }}
+                </td>
+                {% elif 60 <= competitor.legMistakeTimes[i] | int and 180 > competitor.legMistakeTimes[i] | int %}
+                <td class="mistakes very-bad">{{competitor.legMistakeTimes_Text[i]}}<br />
+                  {{ competitor.cruisingSpeeds_Text[i] }}
+                </td>
+                {% elif 180 <= competitor.legMistakeTimes[i] | int %}
+                <td class="mistakes catastrophe">{{competitor.legMistakeTimes_Text[i]}}<br />
+                  {{ competitor.cruisingSpeeds_Text[i] }}
+                </td>
+                {% else %}
+                <td class="mistakes">{{competitor.legMistakeTimes_Text[i]}}<br />
+                  {{ competitor.cruisingSpeeds_Text[i] }}
+                </td>
+                {% endif %}
+                {% else %}
+                <td class="mistakes">X<br />
+                  X
+                </td>
               {% endif %}
               {% endfor %}
             </tr>
@@ -205,40 +226,6 @@
       {% endfor %}
     </div>
 
-
-    <!-- {% for i in range(categories|length) %}
-  <table id="mistakesTableCourse{{i}}" class="mistakesTable">
-    <thead>
-      <tr class="header">
-        <th>Rank</th>
-        <th class="targetHeaderCell" data-orderable="false">Name / Club</th>
-        <th>Total Mistake Times</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>1</td>
-        <td>אלון כהנא</td>
-        <td>15:59</td>
-      </tr>
-      <tr>
-        <td>2</td>
-        <td>Berglunds snabbkop</td>
-        <td>16:40</td>
-      </tr>
-      <tr>
-        <td>3</td>
-        <td>Island Trading</td>
-        <td>16:41</td>
-      </tr>
-      <tr>
-        <td>4</td>
-        <td>Laughing Bacchus Winecellars</td>
-        <td>17:23</td>
-      </tr>
-    </tbody>
-  </table>
-  {% endfor %} -->
     <script>
       {% for i in range(categories | length) %}
       {% if i | int == 0 %}
@@ -249,7 +236,6 @@
       $('table#tab-table{{i}}').DataTable({
         "paging": false,
         "info": false,
-        // "searching": false,
         "order": [[2, "asc"]],
         "columnDefs": [
           { "type": "num", "targets": 0 },
@@ -292,77 +278,37 @@
           DataTable.tables({ visible: true, api: true }).columns.adjust();
         });
       });
-      $('.my-select').selectpicker();
-      $('.dataTables_filter').hide()
-    </script>
-    <!-- <script type="text/javascript" charset="utf8">
-    $(document).ready(function () {
-      {% for i in range(categories | length) %}
-      $('table#splitsTableCourse{{i}}').DataTable({
-        "paging": false,
-        "info": false,
-        "order": [[2, "asc"]],
-        "columnDefs": [
-          { "type": "num", "targets": 0 }
-        ],
-        fixedHeader: true,
-        scrollX: '100%',
-        // scrollY: true,
-        // responsive: true,
-        fixedColumns: {
-          left: 2
-        },
-        // initComplete: function () {
-        //   console.log(this.api());
-        //   this.api().columns([1]).every(function () {
-        //     var column = this;
-        //     var select = $('<select class="my-select" data-width="100%" data-live-search="true" data-selected-text-format="count" data-actions-box="true" data-none-selected-text="Name" multiple></select>')
-        //       .appendTo($('#filterCourse{{i}}'))
-        //       .on('changed.bs.select', function (e) {
-        //         var val = $(this).val();
-        //         var fVal = val.join("|")
-        //         column
-        //           .search(fVal, true, false)
-        //           .draw();
-        //       }); //select
-
-        //     column.data().unique().sort().each(function (d, j) {
-        //       select.append('<option value="' + d + '">' + d + '</option>')
-        //     }); //column.data
-        //   }); //this.api
-        // } //initComplete
-      });
-      {% endfor %}
-      var selectedCourse;
-      var selectedAnalytic;
-      $("#selectCourse").change(function () {
-        $(this).find("option:selected").each(function () {
-          selectedCourse = $(this).attr("value");
-          if (selectedCourse) {
-            $('table').not("#" + selectedAnalytic + "Course" + selectedCourse).hide();
-            $('.filterNames').not("#filterCourse" + selectedCourse).hide();
-            $("#filterCourse" + selectedCourse).show();
-            $("#" + selectedAnalytic + "Course" + selectedCourse).show();
-          } else {
-            $('table').hide();
-          }
-        });
-      }).change();
       $("#selectAnalytic").change(function () {
         $(this).find("option:selected").each(function () {
           selectedAnalytic = $(this).attr("value");
-          if (selectedAnalytic) {
-            $('table').not("#" + selectedAnalytic + "Course" + selectedCourse).hide();
-            $("#" + selectedAnalytic + "Course" + selectedCourse).show();
-          } else {
-            $('table').hide();
+          switch (selectedAnalytic) {
+            case "splits":
+              $("table").show();
+              $(".splits").show();
+              $(".mistakes").hide();
+              DataTable.tables({ visible: true, api: true }).columns.adjust();
+              $('div#filterCourseContainerDiv').show();
+              break;
+            case "mistakes":
+              $("table").show();
+              $(".mistakes").show();
+              $(".splits").hide();
+              DataTable.tables({ visible: true, api: true }).columns.adjust();
+              $('div#filterCourseContainerDiv').show();
+              break;
+            case "standouts":
+              $('div#filterCourseContainerDiv').hide();
+              $("table").hide();
+              break;
+            default:
+              $('div#filterCourseContainerDiv').hide();
+              $("table").hide();
           }
         });
       }).change();
       $('.my-select').selectpicker();
-      $('.dataTables_filter').hide()
-    });
-  </script> -->
+      $('.dataTables_filter').hide();
+    </script>
 </body>
 
 </html>

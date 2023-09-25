@@ -88,7 +88,7 @@ class Competitor:
     legMistakeTimes = []
     legMistakeTimes_Text = []
     nominalCruisingSpeed = 0.0
-    nominalCruisingSpeed_Text = ''
+    nominalCruisingSpeed_Text = 'X'
     totalMistakeTime = 0.0
     totalMistakeTime_Text = ''
     mistakeTimeAverage = 0.0
@@ -172,7 +172,7 @@ class Event:
 
     def getCategoryNames(self, resFile):
         categories = []
-        print(resFile)
+        # print(resFile)
         classes = self.root.findall(Event.xmlns + 'ClassResult')
         for x in classes:
             categories.append(x[0][0].text)
@@ -187,7 +187,7 @@ class Event:
             return e.place
 
         categories = []
-        print(resFile)
+        # print(resFile)
         classes = self.root.findall(Event.xmlns + 'ClassResult')  # Collect all categories/classes
         for x in classes:
             if (x[0][0].text != 'עממי') and (x[0][0].text != 'No course'):  # Exclude non-competitive classes
@@ -580,9 +580,9 @@ def calculateLapCombat(ev):
             numberOfLegsConsideredForCruisingSpeedCalculation = 0
             if not comp.dns and len(comp.legSplitsSeconds) > 0:
                 while accumulatedLegWeights < 0.5:
-                    print(numberOfLegsConsideredForCruisingSpeedCalculation)
-                    print(indices)
-                    print(comp.firstName + " " + comp.lastName)
+                    # print(numberOfLegsConsideredForCruisingSpeedCalculation)
+                    # print(indices)
+                    # print(comp.firstName + " " + comp.lastName)
                     accumulatedLegWeights += ev.categoryList[categoryIndex].legWeights[indices \
                         [numberOfLegsConsideredForCruisingSpeedCalculation]]
                     timeAccumulator += comp.legSplitsSeconds[indices[numberOfLegsConsideredForCruisingSpeedCalculation]]
@@ -641,6 +641,7 @@ def calculateLapCombat(ev):
                 comp.cruisingSpeedMean = 10000.0
                 comp.cruisingSpeedStdDeviation = 10000.0
                 comp.stabilityValue = 100.0
+            # print(comp.legMistakeTimes)
         # For each competitor calculate the nominal cruising speed
         categoryIndex += 1
 
@@ -721,7 +722,7 @@ def formatLapCombatItems(ev):
                     currentCompetitor.status = 'DISQ'
             if not currentCompetitor.dns:
                 if not currentCompetitor.dnf and not currentCompetitor.disq:
-                    currentCompetitor.mistakeRatioPercent_Text = str(currentCompetitor.mistakeRatioPercent)
+                    currentCompetitor.mistakeRatioPercent_Text = str(currentCompetitor.mistakeRatioPercent) + "%"
                 elif currentCompetitor.dnf:
                     currentCompetitor.mistakeRatioPercent_Text = 'DNF'
                 elif currentCompetitor.disq:
