@@ -2,7 +2,7 @@ import xml.etree.ElementTree as ET
 import datetime as dt
 import csv
 import statistics
-import copy
+import time
 
 # # File version: 0.5
 # # 18.10.21
@@ -18,7 +18,8 @@ import copy
 # # resultFile = '/public/Nivut_CD/Lapcombat/Ramat_Hanadiv_2021_results-IOFv3.xml'
 # # resultFile = '/public/Nivut_CD/Lapcombat/Hasolelim_2022_results-IOFv3.xml'
 # # resultFile = '/public/Nivut_CD/Lapcombat/Elyaqim_2022_results-IOFv3.xml'
-# resultFile = '/public/Nivut_CD/Lapcombat/Kfar_Saba_Hayeruka_2022_results-IOFv3.xml'
+# # resultFile = '/public/Nivut_CD/Lapcombat/Kfar_Saba_Hayeruka_2022_results-IOFv3.xml'
+# resultFile = '/public/Nivut_CD/Lapcombat/Ramat_Hanadiv_2022_results-IOFv3.xml'
 # # resultFile = '/public/Nivut_CD/Hasharon_Website/Github/hasharonoc.github.io/events/Caesaria_2022/caesaria_22_result_list.xml'
 # # resultFile = '/public/Nivut_CD/Hasharon_Website/Github/hasharonoc.github.io/events/Ben_Shemen_2022/ben_shemen_22_result_list.xml'
 # xmlns = '{http://www.orienteering.org/datastandard/3.0}'  # Required for identifying xml tags in the results file.
@@ -49,7 +50,6 @@ import copy
 #     fct = dt.datetime.strptime(fileCreationTime, datetimeStrptimeString)  # Convert to datetime object
 #     # Make a copy of the file creation time in order to establish an arbitrary event start time
 #     baseEventStart = dt.datetime(fct.year, fct.month, fct.day, hour=6, minute=0, second=0)
-
 
 class Competitor:
     firstName = ""
@@ -132,14 +132,21 @@ class Category:
     controlPunches = [[]]
     legWeights = []
     legStandardTimeSeconds = []
+    validLegSplitsCounter = []
+    averageLegMistakeTimes = []
+    theObstacle = ''
+    theObstacleAverageMistakeTime = ''
     idealFinishTimeSeconds = 0.0
     biggestGainer = []
     biggestLoser = []
     biggestGainer_Text = ''
     biggestLoser_Text = ''
     theRoadrunner = ''
+    theRoadrunner_name = ''
     theSwissClock = ''
+    theSwissClock_name = ''
     theRock = ''
+    theRock_name = ''
     possibleTrains = []
     trains = []
     trainsByControls = []
@@ -186,6 +193,47 @@ class Event:
         def competitor_sort_criterion(e):
             return e.place
 
+        def getCourseControlList(categoryName):
+            categoryControlsList = list()
+            candidateControlLists = list()
+            controlsListFrequency = list()
+            classList = self.root.findall(Event.xmlns + 'ClassResult')
+            for currentClass in classList:
+                if currentClass.find(Event.xmlns + 'Class').find(Event.xmlns + 'Name').text == categoryName:
+                    runners = currentClass.findall(Event.xmlns + 'PersonResult')
+                    for runner in runners:
+                        runnerCodes = list()
+                        runner_status = runner.find(Event.xmlns + 'Result').find(Event.xmlns + 'Status').text
+                        if runner_status == "OK":
+                            runnerPunches = runner.find(Event.xmlns + 'Result').findall(Event.xmlns + 'SplitTime')
+                            for punch in runnerPunches:
+                                if not punch.attrib:
+                                    runnerSplits = punch.findall(Event.xmlns + 'ControlCode')
+                                    # if punch[3].text == 'DidNotStart' or punch[2].text == 'DidNotStart':
+                                    #     runner.dns = True
+                                    # if punch[2].text == 'Disqualified':
+                                    #     runner.disq = True
+                                    # if punch[2].text == 'DidNotFinish':
+                                    #     runner.dnf = True
+                                    if len(runnerSplits) > 0:
+                                        for split in runnerSplits:
+                                            if not split.attrib:
+                                                runnerCodes.append(split.text)
+                                        # runnerCodes.append(split.find('ControlCode').text)
+                            if runnerCodes in candidateControlLists:
+                                controlsListFrequency[candidateControlLists.index(runnerCodes)] += 1
+                            else:
+                                candidateControlLists.append(runnerCodes)
+                                controlsListFrequency.append(1)
+                            # if len(runnerCodes) > len(categoryControlsList):
+                            #     categoryControlsList.clear()
+                            #     for code in runnerCodes:
+                            #         categoryControlsList.append(code)
+            categoryControlsList = candidateControlLists[controlsListFrequency.index(max(controlsListFrequency, default=0))]
+            return categoryControlsList
+
+
+
         categories = []
         # print(resFile)
         classes = self.root.findall(Event.xmlns + 'ClassResult')  # Collect all categories/classes
@@ -204,6 +252,8 @@ class Event:
                 firstCompetitor = True  # The first competitor in the list is used to collect the list of controls
                 fakeId = 30000  # This is a fake ID number given for competitors registered on-site without a
                 # valid ISOA ID number.
+                currentCategory.course.controls = getCourseControlList(currentCategory.categoryName)    # Get the course
+                # definition
                 for p in competitors:
                     person = p.find(Event.xmlns + 'Person')
                     org = p.find(Event.xmlns + 'Organisation')
@@ -313,8 +363,8 @@ class Event:
                             if status[0].text == 'MissingPunch':
                                 currentCompetitor.disq = True
                             for sp in splits:
-                                if firstCompetitor and not (currentCompetitor.dns):
-                                    currentCategory.course.controls.append(sp[0].text)
+                                # if firstCompetitor and not (currentCompetitor.dns):
+                                #     currentCategory.course.controls.append(sp[0].text)
                                 if not currentCompetitor.dns:
                                     if sp.attrib.get('status') != 'Missing' and sp.attrib.get('status') != 'Additional':
                                         splitTime = sp.find(Event.xmlns + 'Time')
@@ -507,7 +557,7 @@ class Event:
             competitors.append(x[2][0][1][0].text)
         return competitors
 
-    # Event.eventName = getEventName(self)
+    # eventName = getEventName(self)
 
 
 def calculateLapCombat(ev):
@@ -516,6 +566,8 @@ def calculateLapCombat(ev):
         controlSequentialNumber = 0
         cat.legStandardTimeSeconds = []
         ev.categoryList[categoryIndex].legStandardTimeSeconds = []
+        cat.validLegSplitsCounter = []
+        cat.averageLegMistakeTimes = []
         # For each leg, collect the splits from all competitors
         for leg in cat.course.controls:
             validSplitsCounter = 0
@@ -526,6 +578,8 @@ def calculateLapCombat(ev):
                     if comp.legSplitsSeconds[controlSequentialNumber] > 0:
                         validSplits.append(comp.legSplitsSeconds[controlSequentialNumber])
                         validSplitsCounter += 1
+            cat.validLegSplitsCounter.append(validSplitsCounter)
+            cat.averageLegMistakeTimes.append(0)
             # Sort the splits in order to get the three fastest ones (or less if there are less than three).
             validSplits.sort()
             # Calculate the average of the three (or less) fastest times. This is the "standard" for the leg.
@@ -537,7 +591,7 @@ def calculateLapCombat(ev):
                     if counter == 2: break
                     counter += 1
                 cat.legStandardTimeSeconds.append(round(sumOfSplits / (counter + 1), 2))
-                ev.categoryList[categoryIndex].legStandardTimeSeconds.append(round(sumOfSplits / (counter + 1), 2))
+                # ev.categoryList[categoryIndex].legStandardTimeSeconds.append(round(sumOfSplits / (counter + 1), 2))
             controlSequentialNumber += 1
         # Calculate the "gold standard" finishing time for the course (category).
         ev.categoryList[categoryIndex].idealFinishTimeSeconds = \
@@ -581,10 +635,7 @@ def calculateLapCombat(ev):
             if not comp.dns and len(comp.legSplitsSeconds) > 0:
                 while accumulatedLegWeights < 0.5:
                     # print(numberOfLegsConsideredForCruisingSpeedCalculation)
-                    # print(indices)
-                    # print(comp.firstName + " " + comp.lastName)
-                    accumulatedLegWeights += ev.categoryList[categoryIndex].legWeights[indices \
-                        [numberOfLegsConsideredForCruisingSpeedCalculation]]
+                    accumulatedLegWeights += ev.categoryList[categoryIndex].legWeights[indices[numberOfLegsConsideredForCruisingSpeedCalculation]]
                     timeAccumulator += comp.legSplitsSeconds[indices[numberOfLegsConsideredForCruisingSpeedCalculation]]
                     numberOfLegsConsideredForCruisingSpeedCalculation += 1
                 # Calculate the nominal cruising speed by dividing the normalized time of the better half by the ideal
@@ -605,6 +656,7 @@ def calculateLapCombat(ev):
                     if comp.legSplitsSeconds[leg] > 0:
                         comp.legMistakeTimes.append(comp.legSplitsSeconds[leg] - comp.nominalCruisingSpeed *
                                                     ev.categoryList[categoryIndex].legStandardTimeSeconds[leg])
+                        cat.averageLegMistakeTimes[leg] += comp.legMistakeTimes[leg]
                     else:
                         comp.legMistakeTimes.append(-10000)
                         comp.numberOfMissingLegs += 1
@@ -643,6 +695,13 @@ def calculateLapCombat(ev):
                 comp.stabilityValue = 100.0
             # print(comp.legMistakeTimes)
         # For each competitor calculate the nominal cruising speed
+        # Calculate the obstacle 
+        for leg in range(len(cat.course.controls)):
+            if cat.validLegSplitsCounter[leg] > 0:
+                cat.averageLegMistakeTimes[leg] = cat.averageLegMistakeTimes[leg] / cat.validLegSplitsCounter[leg]
+        theObstacle = max(enumerate(cat.averageLegMistakeTimes),key=lambda x: x[1])[0]
+        cat.theObstacle = str(theObstacle + 1) + " (Code " + cat.course.controls[theObstacle] + ")"
+        cat.theObstacleAverageMistakeTime = "+" + time.strftime('%M:%S', time.gmtime(round(cat.averageLegMistakeTimes[theObstacle],0)))
         categoryIndex += 1
 
 
@@ -1255,17 +1314,11 @@ def biggestGainersLosers(ev):  # Calculate the biggest gainerOrLosers and losers
             gainOrLossDueToAccuracy]
         cat.biggestLoser = [cat.competitors[gainOrLossIndices[0]], cat.competitors[gainOrLossIndices[0]].
             gainOrLossDueToAccuracy]
-        cat.biggestGainer_Text = cat.competitors[gainOrLossIndices[-1]].firstName + ' ' + \
-                                 cat.competitors[gainOrLossIndices[-1]].lastName + \
-                                 " ממקום: " + str(cat.competitors[gainOrLossIndices[-1]].place + \
-                                                  cat.competitors[
-                                                      gainOrLossIndices[-1]].gainOrLossDueToAccuracy) + " למקום " + \
+        cat.biggestGainer_Text = str(cat.competitors[gainOrLossIndices[-1]].place + \
+                                    cat.competitors[gainOrLossIndices[-1]].gainOrLossDueToAccuracy) + " -->" + \
                                  str(cat.competitors[gainOrLossIndices[-1]].place)
-        cat.biggestLoser_Text = cat.competitors[gainOrLossIndices[0]].firstName + ' ' + \
-                                cat.competitors[gainOrLossIndices[0]].lastName + \
-                                " ממקום: " + str(cat.competitors[gainOrLossIndices[0]].place + \
-                                                 cat.competitors[
-                                                     gainOrLossIndices[0]].gainOrLossDueToAccuracy) + " למקום " + \
+        cat.biggestLoser_Text = str(cat.competitors[gainOrLossIndices[0]].place + \
+                                    cat.competitors[gainOrLossIndices[0]].gainOrLossDueToAccuracy) + " -->" + \
                                 str(cat.competitors[gainOrLossIndices[0]].place)
         pass
 
@@ -1304,13 +1357,15 @@ def roadrunnerAndSwissClock(ev):
         swissClock = mistakeIndices[index]
         stabilityIndices.sort(key=stabilityValues.__getitem__)
         theRock = stabilityIndices[0]
-        cat.theRoadrunner = 'הטוחן: ' + cat.competitors[roadRunner].firstName + ' ' + cat.competitors[roadRunner]. \
-            lastName + ': ' + str(round(cat.competitors[roadRunner].nominalCruisingSpeed * 100, 1))
-        cat.theSwissClock = 'השעון השוויצרי: ' + cat.competitors[swissClock].firstName + ' ' + cat.competitors[
-            swissClock]. \
-            lastName + ': ' + str(cat.competitors[swissClock].mistakeRatioPercent)
-        cat.theRock = 'הסלע: ' + cat.competitors[theRock].firstName + ' ' + cat.competitors[theRock]. \
-            lastName + ': ' + str(cat.competitors[theRock].stabilityValue)
+        cat.theRoadrunner = str(round(cat.competitors[roadRunner].nominalCruisingSpeed * 100, 1))
+        cat.theRoadrunner_name = cat.competitors[roadRunner].firstName + ' ' + cat.competitors[roadRunner]. \
+            lastName
+        cat.theSwissClock = str(cat.competitors[swissClock].mistakeRatioPercent)
+        cat.theSwissClock_name = cat.competitors[swissClock].firstName + ' ' + cat.competitors[swissClock]. \
+            lastName
+        cat.theRock = str(round(cat.competitors[theRock].stabilityValue, 2))
+        cat.theRock_name = cat.competitors[theRock].firstName + ' ' + cat.competitors[theRock]. \
+            lastName
     pass
 
 
@@ -1397,22 +1452,3 @@ def calculateEvent(resultsFile):
     #     print(event.categoryList[3].course.legList[i])
     # print('Done!')
     return event
-
-# event = Event(resultFile)
-# # competitors = event.getCompetitors()
-# # categories = event.getCategoryNames()
-# print("Event name: " + event.eventName)
-# event.categoryList = event.getCategories()
-# calculateLapCombat(event)
-# biggestGainersLosers(event)
-# roadrunnerAndSwissClock(event)
-# getLucky(event, luckyControlThresholdSeconds)
-# formatLapCombatItems(event)
-# prepareDataForGraphing(event)
-# # clus = trainSpotting(event, 15)
-# # for i in range(len(event.categoryList[3].course.legList)):
-# #     print(event.categoryList[3].course.legList[i])
-# print('Done!')
-# # a = event.getCategories()
-# # print (a)
-# # print(competitors[0])

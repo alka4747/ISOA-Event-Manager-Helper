@@ -1,8 +1,12 @@
 from flask import Flask, render_template, request, abort
-
 from competition import competition
+import secrets
+
+secret = secrets.token_urlsafe(32)
 
 app = Flask(__name__)
+
+app.secret_key = secret
 
 app.register_blueprint(competition, url_prefix='/api/competition')
 
