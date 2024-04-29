@@ -7,12 +7,16 @@
     <title>Orienteering Event Manager Helper</title>
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css">
     <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet">
-    <link rel="stylesheet" href="../static/form.css">
-    <link rel="icon" sizes="192x192" href="../static/favicon.ico" />
+    <link rel="stylesheet" href="/static/form.css">
+    <link rel="icon" sizes="192x192" href="/static/favicon.ico" />
 </head>
 <body>
   <div class="tabs">
+    {% if "results_tab" == selected_tab %} 
+    <input type="radio" name="tabs" id="tabone">
+    {% else %}
     <input type="radio" name="tabs" id="tabone" checked="checked">
+    {% endif %} 
     <label class="tabsLabel" for="tabone">הכנת תחרות</label>
     <div class="tab">
       <form method="post" action="/api/competition/generate-preperation-files" enctype="multipart/form-data">
@@ -78,10 +82,14 @@
       </form>
     </div>
     
+    {% if "results_tab" == selected_tab %} 
+    <input type="radio" name="tabs" id="tabtwo" checked="checked">
+    {% else %}
     <input type="radio" name="tabs" id="tabtwo">
+    {% endif %} 
     <label class="tabsLabel" for="tabtwo">הפקת תוצאות רשמיות</label>
     <div class="tab">
-      <form method="post" action="/api/competition/generate-isoa-results-file" enctype="multipart/form-data">
+      <form method="post" enctype="multipart/form-data">
         <div style="direction: rtl; padding-bottom: 1rem; padding-top: 1rem;">הזן קובץ תוצאות בפורמט IOF XML
           {% if platform == "si-droid" %}
           <div class="tooltip"><span class="tooltipitem"><i class="fa fa-info-circle" style="font-size: 115%;" aria-hidden="true"></i></span>
@@ -110,11 +118,25 @@
         </div>
         <hr />
         <p class="error-msg" id="resultsInputErrorMsg"></p>
-        <div style="text-align: center;">       
-          <button class="button"><span>הפק קובץ תוצאות</span></button>
+        <div style="text-align: center;">
+          <button class="button" type="submit" formaction="{{ url_for('competition.generate_lapcombat') }}"><span>הפק לאפקומבט</span></button>
+          <button class="button" type="submit" formaction="{{ url_for('competition.generate_official_results') }}"><span>הפק קובץ תוצאות</span></button>
         </div>
       </form>
+      <div class="container-fluid" style="min-height:100%">
+        {% with messages = get_flashed_messages() %} 
+          {% if messages %} 
+            {% for message in messages %}
+            <div class="alert">
+              <span class="closebtn" onclick="this.parentElement.style.display='none';">&times;</span> 
+              {{message}}
+            </div>
+            {% endfor %} 
+          {% endif %} 
+        {% endwith %}
+      </div>
     </div>
+    
   </div>
     <script>
       function add_si_box() {

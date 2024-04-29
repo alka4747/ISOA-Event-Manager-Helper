@@ -1,4 +1,4 @@
-from flask import Blueprint, request, abort, send_file
+from flask import Blueprint, flash, redirect, request, abort, send_file, render_template, Response
 from werkzeug.utils import secure_filename
 from operator import itemgetter
 from zipfile import ZipFile
@@ -10,12 +10,13 @@ import csv
 import tempfile
 import xlsxwriter
 import datetime
+import lapcombat
 
 competition = Blueprint('competition', __name__)
 
 ALLOWED_STARTLIST_FILE_EXTENSIONS = [".xlsx"]
 ALLOWED_RESULTS_FILE_EXTENSIONS = [".xml"]
-BAD_CHARACTERS = ["\u202c", "\u200e", "\u202b", "ê", "ü"]
+BAD_CHARACTERS = ["\u202c", "\u200e", "\u202b", "ê", "ü", "é", "\xe9"]
 
 def validate_startlist_files_user_input(startlist_file):
     filename = secure_filename(startlist_file.filename)
@@ -402,7 +403,7 @@ def parse_iof_results_xml(xml_file):
         position_index = 1
         for competitor in class_result.findall('{http://www.orienteering.org/datastandard/3.0}PersonResult'):
             if competitor.find('{http://www.orienteering.org/datastandard/3.0}Result').find('{http://www.orienteering.org/datastandard/3.0}Status').text == "OK":
-                competitor_time = str(datetime.timedelta(seconds = int(competitor.find('{http://www.orienteering.org/datastandard/3.0}Result').find('{http://www.orienteering.org/datastandard/3.0}Time').text)))
+                competitor_time = str(datetime.timedelta(seconds = round(float(competitor.find('{http://www.orienteering.org/datastandard/3.0}Result').find('{http://www.orienteering.org/datastandard/3.0}Time').text))))
                 competitor_position = 0
             elif competitor.find('{http://www.orienteering.org/datastandard/3.0}Result').find('{http://www.orienteering.org/datastandard/3.0}Status').text == "Active" or competitor.find('{http://www.orienteering.org/datastandard/3.0}Result').find('{http://www.orienteering.org/datastandard/3.0}Status').text == "DidNotStart":
                 continue
@@ -440,7 +441,7 @@ def save_official_results_to_csv(xml_data, file_name):
 
         # write punch data
         for competitor_data in xml_data["competitors_data"]:
-             # Clean name strings
+            # Clean name strings
             if competitor_data[3] is not None:
                 competitor_data[3] = "".join(i for i in competitor_data[3] if not i in BAD_CHARACTERS)
             if competitor_data[4] is not None:
@@ -449,11 +450,19 @@ def save_official_results_to_csv(xml_data, file_name):
     return csvfile
 
 def generate_isoa_results_file_from_iof_xml(uploaded_results_file, directory):
-            # parse xml file
-        xml_data = parse_iof_results_xml(uploaded_results_file)
-        # store results in a csv file
-        return save_official_results_to_csv(xml_data, os.path.join(directory,'official_results.csv'))
-        
+    # parse xml file
+    xml_data = parse_iof_results_xml(uploaded_results_file)
+    # store results in a csv file
+    return save_official_results_to_csv(xml_data, os.path.join(directory,'official_results.csv'))
+
+def generate_lapcombat_html_file_from_iof_xml(uploaded_results_file, directory):
+    event = lapcombat.calculateEvent(uploaded_results_file)
+    lapcombat_html_file_content = render_template('lapcombat.html', eventName=event.getEventName(), categories=event.categoryList)
+    with open(os.path.join(directory,'lapcombat.html'), 'w', encoding="cp1255") as file:
+        for char in BAD_CHARACTERS:
+            lapcombat_html_file_content = lapcombat_html_file_content.replace(char, "")
+        file.write(lapcombat_html_file_content)
+    return lapcombat_html_file_content # DEBUG ONLY
 
 @competition.route('/generate-preperation-files', methods=['POST'])
 def generate_preperation_files():
@@ -556,20 +565,49 @@ def generate_preperation_files():
                 content = io.BytesIO(f.read())
             return send_file(content,
                              as_attachment=True, download_name='competition_files.zip')
-
-@competition.route('/generate-isoa-results-file', methods=['POST'])
-def generate_isoa_results_file():
+            
+@competition.route('/generate-official-results', methods=['POST'])
+def generate_official_results():
     if request.method == 'POST':
         platform = request.form['platform']
         if platform not in ['mulka', 'si-droid']:
-            abort(400)
+            flash("Mulka or SI-DROID must be selected")
+            return render_template('form.html', platform=platform, selected_tab="results_tab")
         with tempfile.TemporaryDirectory() as tmpdir:
             uploaded_results_file = request.files["resultsFile"]
             validate_results_user_input(uploaded_results_file)
-            generate_isoa_results_file_from_iof_xml(uploaded_results_file, tmpdir)
-            # send official results to client
-            with open(os.path.join(tmpdir, "official_results.csv"), "rb") as f:
-                content = io.BytesIO(f.read())
-            return send_file(content,
-                             as_attachment=True,
-                             download_name="official_results.csv")
+            uploaded_results_file.save(os.path.join(tmpdir, "iof_results.xml"))
+            try:
+                generate_isoa_results_file_from_iof_xml(os.path.join(tmpdir, "iof_results.xml"), tmpdir)
+            except Exception as e:
+                abort(400, "Not able to compute ISOA results file (Verify the input file) - " + str(e))
+            else:
+                with open(os.path.join(tmpdir, "official_results.csv"), "rb") as f:
+                    content = io.BytesIO(f.read())
+                    
+                    return send_file(content,
+                                 as_attachment=True,
+                                 download_name='official_results.csv')                
+
+@competition.route('/generate-lapcombat', methods=['POST'])
+def generate_lapcombat():
+    if request.method == 'POST':
+        platform = request.form['platform']
+        if platform not in ['mulka', 'si-droid']:
+            flash("Mulka or SI-DROID must be selected")
+            return render_template('form.html', platform=platform, selected_tab="results_tab")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            uploaded_results_file = request.files["resultsFile"]
+            validate_results_user_input(uploaded_results_file)
+            uploaded_results_file.save(os.path.join(tmpdir, "iof_results.xml"))
+            try:
+                generate_lapcombat_html_file_from_iof_xml(os.path.join(tmpdir, "iof_results.xml"), tmpdir)
+            except Exception as e:
+                abort(400, "Not able to compute Lapcombat (Verify the input file) - " + str(e))
+            else:
+                with open(os.path.join(tmpdir, "lapcombat.html"), "rb") as f:
+                    content = io.BytesIO(f.read())
+                    
+                    return send_file(content,
+                                 as_attachment=True,
+                                 download_name='lapcombat.html')    
