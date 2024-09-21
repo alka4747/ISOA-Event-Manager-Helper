@@ -121,14 +121,20 @@ class Event:
 
     xmlns = '{http://www.orienteering.org/datastandard/3.0}'  # Required for identifying xml tags in the results file.
     mulkaDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S%z"
-    SIDroidDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S"
+    SIDroidDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S.%f%z"
     SIDroidTimeStampsDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S"
+    si_droid_version = ""
     eventName = ""
     categoryList = []
     splitsTable = [[]]
     elapsedTimesTable = [[]]
     legSpeedIndexTable = [[]]
     legMistakeTimeTable = [[]]
+
+    def getSIDroidVersion(self, resFile):
+        if not self.mulka:
+            app = self.root.attrib.get('creator')
+            return app[15:]
 
     def getCategoryNames(self, resFile):
         categories = []
@@ -350,9 +356,14 @@ class Event:
                                     minute=currentCompetitor.startTimeAsDateTime.minute,
                                     second=currentCompetitor.startTimeAsDateTime.second)
                             else:
-                                currentCompetitor.startTimeAsDateTime = dt.datetime.strptime(
+                                if compare_versions(tuple(map(int, self.si_droid_version.split('.'))), tuple(map(int, "1.15.12".split('.')))) >= 0:
+                                    currentCompetitor.startTimeAsDateTime = dt.datetime.strptime(
                                     currentCompetitor.startTime[:-6],
                                     Event.SIDroidTimeStampsDatetimeStrptimeString)
+                                else:
+                                    currentCompetitor.startTimeAsDateTime = dt.datetime.strptime(
+                                    currentCompetitor.startTime,
+                                    Event.SIDroidTimeStampsDatetimeStrptimeString)                                
                         if not currentCompetitor.dns and len(currentCompetitor.cumulativeLegTimesSeconds) > 0 and \
                                 not currentCompetitor.finishTime is None and not currentCompetitor.dnf:
                             if self.mulka:
@@ -366,8 +377,12 @@ class Event:
                                     minute=currentCompetitor.finishTimeAsDateTime.minute,
                                     second=currentCompetitor.finishTimeAsDateTime.second)
                             else:
-                                currentCompetitor.finishTimeAsDateTime = dt.datetime.strptime(
-                                    currentCompetitor.finishTime[:-6], Event.SIDroidTimeStampsDatetimeStrptimeString)
+                                if compare_versions(tuple(map(int, self.si_droid_version.split('.'))), tuple(map(int, "1.15.12".split('.')))) >= 0:
+                                    currentCompetitor.finishTimeAsDateTime = dt.datetime.strptime(
+                                    currentCompetitor.finishTime[:-6], Event.SIDroidTimeStampsDatetimeStrptimeString) 
+                                else:
+                                    currentCompetitor.finishTimeAsDateTime = dt.datetime.strptime(
+                                    currentCompetitor.finishTime, Event.SIDroidTimeStampsDatetimeStrptimeString)      
                             currentCompetitor.startTimeOffsetFromEventStartSeconds = \
                                 round((currentCompetitor.startTimeAsDateTime - self.baseEventStart).seconds)
                             CC = res.findall(Event.xmlns + 'ControlCard')
@@ -512,6 +527,15 @@ class Event:
 
     # eventName = getEventName(self)
 
+
+# Function to compare two semantic versions
+def compare_versions(version1, version2):
+    for v1, v2 in zip(version1, version2):
+        if v1 > v2:
+            return 1
+        elif v1 < v2:
+            return -1
+    return 0
 
 def calculateLapCombat(ev):
     categoryIndex = 0
@@ -1364,7 +1388,7 @@ def prepareDataForGraphing(ev):
 
 def calculateEvent(resultsFile):
     mulkaDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S%z"
-    SIDroidDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S"
+    SIDroidDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S.%f%z"
     SIDroidTimeStampsDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S"
     classes = []
     tree = ET.parse(resultsFile)
@@ -1385,7 +1409,12 @@ def calculateEvent(resultsFile):
         # Make a copy of the file creation time in order to establish an arbitrary event start time
         baseEventStart = dt.datetime(fct.year, fct.month, fct.day, hour=6, minute=0, second=0)
     else:
-        datetimeStrptimeString = SIDroidDatetimeStrptimeString
+        si_droid_version = app[15:]
+        comparison = compare_versions(tuple(map(int, si_droid_version.split('.'))), tuple(map(int, "1.15.12".split('.'))))
+        if comparison >= 0:
+            datetimeStrptimeString = SIDroidDatetimeStrptimeString[:-5]
+        else:
+            datetimeStrptimeString = SIDroidDatetimeStrptimeString
         fct = dt.datetime.strptime(fileCreationTime, datetimeStrptimeString)  # Convert to datetime object
         # Make a copy of the file creation time in order to establish an arbitrary event start time
         baseEventStart = dt.datetime(fct.year, fct.month, fct.day, hour=6, minute=0, second=0)
@@ -1393,6 +1422,7 @@ def calculateEvent(resultsFile):
     # competitors = event.getCompetitors()
     # categories = event.getCategoryNames()
     # print("Event name: " + event.eventName)
+    event.si_droid_version = event.getSIDroidVersion(resultsFile)
     event.categoryList = event.getCategories(resultsFile)
     calculateLapCombat(event)
     biggestGainersLosers(event)
