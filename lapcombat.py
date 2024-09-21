@@ -4,53 +4,6 @@ import csv
 import statistics
 import time
 
-# # File version: 0.5
-# # 18.10.21
-
-# # Insert the IOF V.3.0 result file path here.
-# # resultFile = '/public/Nivut_CD/Lapcombat/XML_Results/ben_shemen_east_21_result_list_Family_First.xml'
-# # resultFile = '/public/Nivut_CD/Lapcombat/shoham_2018_result_list_Family_First.xml'
-# # resultFile = '/public/Nivut_CD/Lapcombat/Shoham_2021_results-IOFv3.xml'
-# # resultFile = '/public/Nivut_CD/Lapcombat/Holon_2021_results-IOFv3.xml'
-# # resultFile = '/public/Nivut_CD/Lapcombat/XML_Results/Shimshit_SI_Droid_results-IOFv3.xml'
-# # resultFile = '/public/Nivut_CD/Lapcombat/XML_Results/Kfar_Hahoresh_SI_Droid_results-IOFv3.xml'
-# # resultFile = '/public/Nivut_CD/Lapcombat/XML_Results/Nazareth_SI_Droid_results-IOFv3_Original.xml'
-# # resultFile = '/public/Nivut_CD/Lapcombat/Ramat_Hanadiv_2021_results-IOFv3.xml'
-# # resultFile = '/public/Nivut_CD/Lapcombat/Hasolelim_2022_results-IOFv3.xml'
-# # resultFile = '/public/Nivut_CD/Lapcombat/Elyaqim_2022_results-IOFv3.xml'
-# # resultFile = '/public/Nivut_CD/Lapcombat/Kfar_Saba_Hayeruka_2022_results-IOFv3.xml'
-# resultFile = '/public/Nivut_CD/Lapcombat/Ramat_Hanadiv_2022_results-IOFv3.xml'
-# # resultFile = '/public/Nivut_CD/Hasharon_Website/Github/hasharonoc.github.io/events/Caesaria_2022/caesaria_22_result_list.xml'
-# # resultFile = '/public/Nivut_CD/Hasharon_Website/Github/hasharonoc.github.io/events/Ben_Shemen_2022/ben_shemen_22_result_list.xml'
-# xmlns = '{http://www.orienteering.org/datastandard/3.0}'  # Required for identifying xml tags in the results file.
-# mulkaDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S%z"
-# SIDroidDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S.%f%z"
-# SIDroidTimeStampsDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S"
-# classes = []
-
-# tree = ET.parse(resultFile)
-# root = tree.getroot()
-# app = root.attrib.get('creator')  # Find the application that created the results file.
-# fileCreationTime = root.get('createTime')  # Get the file creation time. This will serve as a base for time events
-# defaultStartTime = dt.datetime(2021, 1, 1)
-# luckyControlThresholdSeconds = 10  # This is the time threshold for calculating whether the runner saw someone punching
-# # the control, thus revealing its location.
-# numberOfControlsForGroupOrienteeringThreshold = 5  # This is the number of consecutive joint punches threshold for
-# # considering two runners as tracking each other.
-# mulka = False
-# if app[0:5] == 'Mulka':
-#     mulka = True  # Check if the results came from Mulka or not
-# if mulka:
-#     datetimeStrptimeString = mulkaDatetimeStrptimeString
-#     fct = dt.datetime.strptime(fileCreationTime, datetimeStrptimeString)  # Convert to datetime object
-#     # Make a copy of the file creation time in order to establish an arbitrary event start time
-#     baseEventStart = dt.datetime(fct.year, fct.month, fct.day, hour=6, minute=0, second=0)
-# else:
-#     datetimeStrptimeString = SIDroidDatetimeStrptimeString
-#     fct = dt.datetime.strptime(fileCreationTime, datetimeStrptimeString)  # Convert to datetime object
-#     # Make a copy of the file creation time in order to establish an arbitrary event start time
-#     baseEventStart = dt.datetime(fct.year, fct.month, fct.day, hour=6, minute=0, second=0)
-
 class Competitor:
     firstName = ""
     lastName = ""
@@ -168,7 +121,7 @@ class Event:
 
     xmlns = '{http://www.orienteering.org/datastandard/3.0}'  # Required for identifying xml tags in the results file.
     mulkaDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S%z"
-    SIDroidDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S.%f%z"
+    SIDroidDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S"
     SIDroidTimeStampsDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S"
     eventName = ""
     categoryList = []
@@ -398,7 +351,7 @@ class Event:
                                     second=currentCompetitor.startTimeAsDateTime.second)
                             else:
                                 currentCompetitor.startTimeAsDateTime = dt.datetime.strptime(
-                                    currentCompetitor.startTime,
+                                    currentCompetitor.startTime[:-6],
                                     Event.SIDroidTimeStampsDatetimeStrptimeString)
                         if not currentCompetitor.dns and len(currentCompetitor.cumulativeLegTimesSeconds) > 0 and \
                                 not currentCompetitor.finishTime is None and not currentCompetitor.dnf:
@@ -414,7 +367,7 @@ class Event:
                                     second=currentCompetitor.finishTimeAsDateTime.second)
                             else:
                                 currentCompetitor.finishTimeAsDateTime = dt.datetime.strptime(
-                                    currentCompetitor.finishTime, Event.SIDroidTimeStampsDatetimeStrptimeString)
+                                    currentCompetitor.finishTime[:-6], Event.SIDroidTimeStampsDatetimeStrptimeString)
                             currentCompetitor.startTimeOffsetFromEventStartSeconds = \
                                 round((currentCompetitor.startTimeAsDateTime - self.baseEventStart).seconds)
                             CC = res.findall(Event.xmlns + 'ControlCard')
@@ -1411,7 +1364,7 @@ def prepareDataForGraphing(ev):
 
 def calculateEvent(resultsFile):
     mulkaDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S%z"
-    SIDroidDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S.%f%z"
+    SIDroidDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S"
     SIDroidTimeStampsDatetimeStrptimeString = "%Y-%m-%dT%H:%M:%S"
     classes = []
     tree = ET.parse(resultsFile)
