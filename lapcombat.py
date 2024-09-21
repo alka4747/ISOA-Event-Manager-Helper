@@ -152,6 +152,18 @@ class Event:
         def competitor_sort_criterion(e):
             return e.place
 
+        def getNumOfSuccesfulFinishers(categoryName):
+            classList = self.root.findall(Event.xmlns + 'ClassResult')
+            num_of_succesful_finishers = 0
+            for currentClass in classList:
+                if currentClass.find(Event.xmlns + 'Class').find(Event.xmlns + 'Name').text == categoryName:
+                    runners = currentClass.findall(Event.xmlns + 'PersonResult')
+                    for runner in runners:
+                        runner_status = runner.find(Event.xmlns + 'Result').find(Event.xmlns + 'Status').text
+                        if runner_status == "OK":
+                            num_of_succesful_finishers += 1
+            return num_of_succesful_finishers
+
         def getCourseControlList(categoryName):
             categoryControlsList = list()
             candidateControlLists = list()
@@ -191,13 +203,11 @@ class Event:
             categoryControlsList = candidateControlLists[controlsListFrequency.index(max(controlsListFrequency, default=0))]
             return categoryControlsList
 
-
-
         categories = []
         # print(resFile)
         classes = self.root.findall(Event.xmlns + 'ClassResult')  # Collect all categories/classes
         for x in classes:
-            if (x[0][0].text != 'עממי') and (x[0][0].text != 'No course'):  # Exclude non-competitive classes
+            if (x[0][0].text != 'עממי') and (x[0][0].text != 'No course') and (getNumOfSuccesfulFinishers(x[0][0].text) > 0):  # Exclude non-competitive classes
                 currentCategory = Category(x[0][0].text)  # Get the category name.
                 categories.append(currentCategory)  # Add the category name to the list of category names.
                 currentCategory.course = Course(x[1][0].text, x[1][1].text)  # Add the category's course details.
