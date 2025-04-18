@@ -80,7 +80,7 @@ def get_exceptional_list(startlist_list):
                 exceptional_competitor = startlist_list[index]
                 exceptional_competitor.append("רשם הערה בעת ההרשמה לתחרות")
                 exceptional_list.append(exceptional_competitor)
-    exceptional_list = sorted(exceptional_list, key=itemgetter(15))
+    exceptional_list = sorted(exceptional_list, key=itemgetter(16))
     return exceptional_list
 
 def allocate_si_cards(startlist_list, available_si_card_numbers_for_rent):
@@ -187,7 +187,7 @@ def populate_si_rental_worksheets(excel_workbook, number_ranges_list, missing_nu
                     if render[6] == str(si_number):
                         worksheet.write('B' + str(si_numbers_row_index), str(render[0]), text_format)
                         worksheet.write('C' + str(si_numbers_row_index), str(render[1]), text_format)
-                        worksheet.write('D' + str(si_numbers_row_index), str(render[14]), text_format)
+                        worksheet.write('D' + str(si_numbers_row_index), str(render[15]), text_format)
                         worksheet.write('E' + str(si_numbers_row_index), "", text_format)
                         worksheet.write('F' + str(si_numbers_row_index), "", text_format)
                         worksheet.write('G' + str(si_numbers_row_index), "", text_format)
@@ -249,7 +249,7 @@ def populate_start_list_worksheets(excel_workbook, registration_file_list):
         all_competitors_worksheet.write('C' + str(competitor_index), competitor[2], text_format)
         all_competitors_worksheet.write('D' + str(competitor_index), competitor[3], text_format)
         all_competitors_worksheet.write('E' + str(competitor_index), competitor[6], text_format)
-        all_competitors_worksheet.write('F' + str(competitor_index), competitor[14], text_format)
+        all_competitors_worksheet.write('F' + str(competitor_index), competitor[15], text_format)
         all_competitors_worksheet.write('G' + str(competitor_index), "", text_format)
         competitor_index += 1
 
@@ -297,7 +297,7 @@ def populate_start_list_worksheets(excel_workbook, registration_file_list):
                 worksheet.write('D' + str(competitor_index), competitor[2], text_format)
                 worksheet.write('E' + str(competitor_index), competitor[3], text_format)
                 worksheet.write('F' + str(competitor_index), competitor[6], text_format)
-                worksheet.write('G' + str(competitor_index), competitor[14], text_format)
+                worksheet.write('G' + str(competitor_index), competitor[15], text_format)
                 worksheet.write('H' + str(competitor_index), "", text_format)
                 competitor_index += 1
 
@@ -343,7 +343,7 @@ def populate_start_list_worksheets(excel_workbook, registration_file_list):
                 worksheet.write('B' + str(competitor_index), competitor[1], text_format)
                 worksheet.write('C' + str(competitor_index), competitor[2], text_format)
                 worksheet.write('D' + str(competitor_index), "", text_format)
-                worksheet.write('E' + str(competitor_index), competitor[14], text_format)
+                worksheet.write('E' + str(competitor_index), competitor[15], text_format)
                 worksheet.write('F' + str(competitor_index), "", text_format)
                 competitor_index += 1
 
@@ -504,7 +504,7 @@ def generate_preperation_files():
                 exceptional_list.insert(0, headers_row)
                 for row_num, data in enumerate(exceptional_list):
                     if data != headers_row:
-                        exceptional_competitor_row = [data[0], data[1], data[2], data[3],data[14], data[9],data[15]]
+                        exceptional_competitor_row = [data[0], data[1], data[2], data[3],data[15], data[9],data[16]]
                         worksheet.write_row(row_num, 0, exceptional_competitor_row)
                     else:
                         worksheet.write_row(row_num, 0, data)
