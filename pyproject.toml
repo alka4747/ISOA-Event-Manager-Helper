@@ -1,0 +1,19 @@
+[project]
+name = "isoa-event-manager-helper"
+version = "0.1.0"
+description = "Orienteering Event Manager Helper"
+requires-python = ">=3.9"
+dependencies = [
+    "Flask==2.3.3",
+    "pandas==2.2.3",
+    "Werkzeug==2.3.7",
+    "XlsxWriter==3.1.5",
+    "gunicorn==21.2.0",
+    "openpyxl==3.1.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==8.3.3",
+    "flake8==7.1.1",
+]

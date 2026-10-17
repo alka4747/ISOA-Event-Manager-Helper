@@ -37,9 +37,9 @@
                   <i class="fa fa-suitcase"></i>
                 </div>
                 <div class="siBoxDetailsContainer">
-                  <input type="text" class="form-control" name="rangeStart[]" placeholder="מס' SI ראשון" value="" style="flex-grow: 1;" pattern="[0-9]+" title="הכנס מספר" required>
-                  <input type="text" class="form-control" name="rangeEnd[]" placeholder="מס' SI אחרון" value="" style="flex-grow: 1;"  pattern="[0-9]+" title="הכנס מספר" required>
-                  <input type="text" class="form-control" name="missingCards[]" placeholder="מס' SI חסרים (לדוגמה: 2071000, 2071050)" value="" style="flex-grow: 9;" pattern="^[0-9]+( *, *[0-9]+)*$" title="הכנס מספרים מופרדים בפסיק" >
+                  <input type="text" class="form-control" name="rangeStart[]" placeholder="מס' SI ראשון" value="" style="flex-grow: 1;" pattern="[0-9]+" title="הכנס מספר">
+                  <input type="text" class="form-control" name="rangeEnd[]" placeholder="מס' SI אחרון" value="" style="flex-grow: 1;" pattern="[0-9]+" title="הכנס מספר">
+                  <input type="text" class="form-control" name="missingCards[]" placeholder="מס' SI חסרים (לדוגמה: 2071000, 2071050)" value="" style="flex-grow: 9;" pattern="^$|^[0-9]+( *, *[0-9]+)*$" title="הכנס מספרים מופרדים בפסיק או השאר ריק" >
                 </div>
                 <a class="btn-remove" onclick='remove_si_box(this)'><i class="fa fa-times"></i></a>
               </div>
@@ -47,7 +47,18 @@
             <div id="newBoxButtonContainerDiv">
               <a class="underline" onclick='add_si_box()'><i class="fa fa-plus"></i> הוסף מזוודה</a>
             </div>
-            
+            <div style="direction: rtl; padding-bottom: 1rem; padding-top: 1rem;">כרטיסי SI נוספים להשכרה
+              <div class="tooltip"><span class="tooltipitem"><i class="fa fa-info-circle" style="font-size: 115%;" aria-hidden="true"></i></span>
+                <span class="tooltiptext">
+                  <div class="tooltipcontainer">
+                    <div id="text">ניתן להזין כרטיסי SI נוספים שאינם משוייכים למזוודה, מופרדים בפסיקים. הכרטיסים יתווספו למאגר הכרטיסים הזמינים להשכרה ויוקצו למשתתפים.</div>
+                  </div>
+                </span>
+              </div>
+            </div>
+            <div id="additionalSiCards">
+              <input type="text" class="form-control" id="additionalSiCards" name="additionalSiCards" placeholder="לדוגמה: 2071000-2071005, 2071010" value="" style="flex-grow: 9;" pattern="^$|^[0-9]+(-[0-9]+)?( *, *[0-9]+(-[0-9]+)?)*$" title="הכנס מספרים או טווחים מופרדים בפסיק (לדוגמה: 2071000-2071005, 2071010) או השאר ריק">
+            </div>            
          </div>
          <hr />
         <div style="direction: rtl; padding-bottom: 1rem;">הכנס קובץ משתתפים מאתר האיגוד בפורמט Excel
@@ -141,7 +152,7 @@
     <script>
       function add_si_box() {
         var div = document.getElementById("siBoxesDetails");
-        div.insertAdjacentHTML('beforeend', "<div class='siBoxRow'><div class='boxIconContainerDiv'><i class='fa fa-suitcase'></i></div><div class='siBoxDetailsContainer'><input type='text' class='form-control' name='rangeStart[]' placeholder=\"מס\' SI ראשון\" value='' style='flex-grow: 1;' pattern='[0-9]+' title='הכנס מספר' required><input type='text' class='form-control' name='rangeEnd[]' placeholder=\"מס\' SI אחרון\" value='' style='flex-grow: 1;' pattern='[0-9]+' title='הכנס מספר' required><input type='text' class='form-control' name='missingCards[]' placeholder=\"מס\' SI חסרים (לדוגמה: 2071000,2071050)\" value='' style='flex-grow: 9;' pattern='^[0-9]+( *, *[0-9]+)*$' title='הכנס מספרים מופרדים בפסיק (ניתן להוסיף רווחים)' required></div><a class='btn-remove' onclick='remove_si_box(this)'><i class='fa fa-times'></i></a></div>")
+        div.insertAdjacentHTML('beforeend', "<div class='siBoxRow'><div class='boxIconContainerDiv'><i class='fa fa-suitcase'></i></div><div class='siBoxDetailsContainer'><input type='text' class='form-control' name='rangeStart[]' placeholder=\"מס\' SI ראשון\" value='' style='flex-grow: 1;' pattern='[0-9]+' title='הכנס מספר'><input type='text' class='form-control' name='rangeEnd[]' placeholder=\"מס\' SI אחרון\" value='' style='flex-grow: 1;' pattern='[0-9]+' title='הכנס מספר'><input type='text' class='form-control' name='missingCards[]' placeholder=\"מס\' SI חסרים (לדוגמה: 2071000,2071050)\" value='' style='flex-grow: 9;' pattern='^$|^[0-9]+( *, *[0-9]+)*$' title='הכנס מספרים מופרדים בפסיק (ניתן להוסיף רווחים)'></div><a class='btn-remove' onclick='remove_si_box(this)'><i class='fa fa-times'></i></a></div>")
       }
       function remove_si_box(elem) {
         var div = document.getElementById("siBoxesDetails");

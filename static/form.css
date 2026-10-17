@@ -72,10 +72,11 @@ hr {
 	outline: none;
 }
 
-#siBoxesDetails {
+#additionalSiCards {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    direction: rtl;
 }
 
 .siBoxRow {

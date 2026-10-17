@@ -18,40 +18,76 @@ ALLOWED_STARTLIST_FILE_EXTENSIONS = [".xlsx"]
 ALLOWED_RESULTS_FILE_EXTENSIONS = [".xml"]
 BAD_CHARACTERS = ["\u202c", "\u200e", "\u202b", "ê", "ü", "é", "\xe9"]
 
+
+@competition.app_errorhandler(400)
+def handle_bad_request(e):
+    return str(e.description or "Bad Request"), 400
+
 def validate_startlist_files_user_input(startlist_file):
     filename = secure_filename(startlist_file.filename)
     # filename has to be valid, and with the right file extension
     if filename != '':
         file_ext = os.path.splitext(filename)[1]
         if file_ext not in ALLOWED_STARTLIST_FILE_EXTENSIONS:
-            abort(400)
+            abort(400, "Invalid startlist file. Only .xlsx files are allowed.")
     else:
-        abort(400)
+        abort(400, "Startlist file is required.")
     return startlist_file
 
-def validate_si_rent_data_user_input(si_boxes_range_starts, si_boxes_range_endings, missing_si_card_numbers_in_boxes):
+
+def validate_si_rent_data_user_input(si_boxes_range_starts, si_boxes_range_endings, missing_si_card_numbers_in_boxes, additional_si_card_numbers):
     missing_si_card_numbers = []
     si_boxes_ranges = []
     all_si_card_numbers = []
     for i in range(len(si_boxes_range_starts)):
+        # an empty box row means no SI box was filled for this row
+        if si_boxes_range_starts[i] == "" and si_boxes_range_endings[i] == "":
+            continue
         if not si_boxes_range_starts[i].isdigit() or not si_boxes_range_endings[i].isdigit():
-            abort(400)
+            abort(400, "SI box range start and end must be numbers.")
         # range start has to be smaller or equal to range end (one SI card is legal)
         if int(si_boxes_range_starts[i]) > int(si_boxes_range_endings[i]):
-            abort(400)
+            abort(400, "SI box range start must be smaller or equal to range end.")
         si_boxes_ranges.append(range(int(si_boxes_range_starts[i]), int(si_boxes_range_endings[i])+1))
         # missing si card numbers has to be within SI box card number range
         if missing_si_card_numbers_in_boxes[i] != "":
             for si_card_number in missing_si_card_numbers_in_boxes[i].replace(" ", "").split(","):
                 if not si_card_number.isdigit():
-                    abort(400)
+                    abort(400, "Missing SI card numbers must be numbers.")
                 if int(si_card_number) not in [*range(int(si_boxes_range_starts[i]), (int(si_boxes_range_endings[i])+1))]:
-                    abort(400)
+                    abort(400, "Missing SI card number is outside the SI box range.")
                 missing_si_card_numbers.append(int(si_card_number))
     for si_range in si_boxes_ranges:
         all_si_card_numbers.extend([*si_range])
+    # additional free text SI cards available for rental (supports ranges like 1-3, 5, 8-10)
+    additional_si_cards_list = []
+    if additional_si_card_numbers and additional_si_card_numbers.strip() != "":
+        for token in additional_si_card_numbers.replace(" ", "").split(","):
+            if token == "":
+                continue
+            if "-" in token:
+                parts = token.split("-")
+                if len(parts) != 2:
+                    abort(400, "Invalid additional SI card range.")
+                range_start_str, range_end_str = parts
+                if not range_start_str.isdigit() or not range_end_str.isdigit():
+                    abort(400, "Additional SI card range must contain numbers.")
+                range_start = int(range_start_str)
+                range_end = int(range_end_str)
+                if range_start > range_end:
+                    abort(400, "Additional SI card range start must be smaller or equal to range end.")
+                si_numbers = range(range_start, range_end + 1)
+            else:
+                if not token.isdigit():
+                    abort(400, "Additional SI cards must be numbers or ranges.")
+                si_numbers = [int(token)]
+            for si_card_number_int in si_numbers:
+                if si_card_number_int not in all_si_card_numbers:
+                    additional_si_cards_list.append(si_card_number_int)
+    all_si_card_numbers.extend(additional_si_cards_list)
     available_si_card_numbers_for_rent = list(filter(lambda el: el not in missing_si_card_numbers, all_si_card_numbers))
-    return si_boxes_ranges, missing_si_card_numbers, available_si_card_numbers_for_rent
+    return si_boxes_ranges, missing_si_card_numbers, available_si_card_numbers_for_rent, additional_si_cards_list
+
 
 def read_startlist_file_to_list(excel_file):
     df = pd.read_excel(excel_file, dtype=str)
@@ -96,105 +132,120 @@ def allocate_si_cards(startlist_list, available_si_card_numbers_for_rent):
                 break
     return si_renders_list
 
-def populate_si_rental_worksheets(excel_workbook, number_ranges_list, missing_numbers, renders_list):
+
+def _create_si_rental_worksheet(excel_workbook, sheet_name, si_numbers, missing_numbers, renders_list):
+    worksheet = excel_workbook.add_worksheet(sheet_name)
+    # Create a format to use in the merged range.
+    merge_format = excel_workbook.add_format({
+        'bold': 1,
+        'underline': 1,
+        'font_name': 'Arial',
+        'font_size': 14,
+        'align': 'center',
+        'valign': 'vcenter',
+        'reading_order': 2})
+    # Create format to usr in headers line
+    headers_format = excel_workbook.add_format({
+        'bold': 1,
+        'border': 1,
+        'font_name': 'Arial',
+        'font_size': 12,
+        'align': 'center',
+        'valign': 'vcenter',
+        'reading_order': 2
+    })
+    text_format = excel_workbook.add_format({
+        'border': 1,
+        'font_name': 'Arial',
+        'font_size': 12,
+        'align': 'center',
+        'valign': 'vcenter',
+        'reading_order': 2
+    })
+    missing_format = excel_workbook.add_format({
+        'border': 1,
+        'font_name': 'Arial',
+        'font_size': 12,
+        'fg_color': 'red'
+    })
+    # Change direction to right to left
+    worksheet.right_to_left()
+
+    # Set columns width
+    worksheet.set_column('A:A', 11)
+    worksheet.set_column('B:B', 14)
+    worksheet.set_column('C:C', 25)
+    worksheet.set_column('D:D', 14)
+    worksheet.set_column('E:E', 12)
+    worksheet.set_column('F:F', 12)
+    worksheet.set_column('G:G', 14)
+    worksheet.set_column('H:H', 14)
+
+    # Headers row
+    worksheet.merge_range('A1:H1', 'השאלת כרטיסי SI', merge_format)
+    worksheet.write('A3', "מס' כרטיס", headers_format)
+    worksheet.write('B3', "מס' חבר/ת.ז.", headers_format)
+    worksheet.write('C3', "שם", headers_format)
+    worksheet.write('D3', "טלפון", headers_format)
+    worksheet.write('E3', "תעודת זהות", headers_format)
+    worksheet.write('F3', "רישיון נהיגה", headers_format)
+    worksheet.write('G3', "לקיחת כרטיס", headers_format)
+    worksheet.write('H3', "החזרת כרטיס", headers_format)
+
+    # Separating row
+    worksheet.write('A4', "", headers_format)
+    worksheet.write('B4', "", headers_format)
+    worksheet.write('C4', "", headers_format)
+    worksheet.write('D4', "", headers_format)
+    worksheet.write('E4', "", headers_format)
+    worksheet.write('F4', "", headers_format)
+    worksheet.write('G4', "", headers_format)
+    worksheet.write('H4', "", headers_format)
+
+    # Populate SI numbers
+    si_numbers_row_index = 5
+    for si_number in si_numbers:
+        worksheet.write('A' + str(si_numbers_row_index), str(si_number), text_format)
+        if si_number in missing_numbers:
+            worksheet.write('B' + str(si_numbers_row_index), "", missing_format)
+            worksheet.write('C' + str(si_numbers_row_index), "", missing_format)
+            worksheet.write('D' + str(si_numbers_row_index), "", missing_format)
+            worksheet.write('E' + str(si_numbers_row_index), "", missing_format)
+            worksheet.write('F' + str(si_numbers_row_index), "", missing_format)
+            worksheet.write('H' + str(si_numbers_row_index), "", missing_format)
+            worksheet.write('G' + str(si_numbers_row_index), "", missing_format)
+        else:
+            worksheet.write('B' + str(si_numbers_row_index), "", text_format)
+            worksheet.write('C' + str(si_numbers_row_index), "", text_format)
+            worksheet.write('D' + str(si_numbers_row_index), "", text_format)
+            worksheet.write('E' + str(si_numbers_row_index), "", text_format)
+            worksheet.write('F' + str(si_numbers_row_index), "", text_format)
+            worksheet.write('H' + str(si_numbers_row_index), "", text_format)
+            worksheet.write('G' + str(si_numbers_row_index), "", text_format)
+            for render in renders_list:
+                if render[6] == str(si_number):
+                    worksheet.write('B' + str(si_numbers_row_index), str(render[0]), text_format)
+                    worksheet.write('C' + str(si_numbers_row_index), str(render[1]), text_format)
+                    worksheet.write('D' + str(si_numbers_row_index), str(render[15]), text_format)
+                    worksheet.write('E' + str(si_numbers_row_index), "", text_format)
+                    worksheet.write('F' + str(si_numbers_row_index), "", text_format)
+                    worksheet.write('H' + str(si_numbers_row_index), "", text_format)
+        si_numbers_row_index += 1
+    return worksheet
+
+
+def populate_si_rental_worksheets(excel_workbook, number_ranges_list, missing_numbers, renders_list, additional_si_cards=None):
     worksheets_list = []
     index = 1
     for number_range in number_ranges_list:
-        worksheet = excel_workbook.add_worksheet("מזוודה " + str(index))
-        # Create a format to use in the merged range.
-        merge_format = excel_workbook.add_format({
-            'bold': 1,
-            'underline': 1,
-            'font_name': 'Arial',
-            'font_size': 14,
-            'align': 'center',
-            'valign': 'vcenter',
-            'reading_order': 2})
-        # Create format to usr in headers line
-        headers_format = excel_workbook.add_format({
-            'bold': 1,
-            'border': 1,
-            'font_name': 'Arial',
-            'font_size': 12,
-            'align': 'center',
-            'valign': 'vcenter',
-            'reading_order': 2
-        })
-        text_format = excel_workbook.add_format({
-            'border': 1,
-            'font_name': 'Arial',
-            'font_size': 12,
-            'align': 'center',
-            'valign': 'vcenter',
-            'reading_order': 2
-        })
-        missing_format = excel_workbook.add_format({
-            'border': 1,
-            'font_name': 'Arial',
-            'font_size': 12,
-            'fg_color': 'red'
-        })
-        # Change direction to right to left
-        worksheet.right_to_left()
-
-        # Set columns width
-        worksheet.set_column('A:A', 11)
-        worksheet.set_column('B:B', 14)
-        worksheet.set_column('C:C', 25)
-        worksheet.set_column('D:D', 14)
-        worksheet.set_column('E:E', 12)
-        worksheet.set_column('F:F', 12)
-        worksheet.set_column('G:G', 14)
-
-        # Headers row
-        worksheet.merge_range('A1:G1', 'השאלת כרטיסי SI', merge_format)
-        worksheet.write('A3', "מס' כרטיס", headers_format)
-        worksheet.write('B3', "מס' חבר/ת.ז.", headers_format)
-        worksheet.write('C3', "שם", headers_format)
-        worksheet.write('D3', "טלפון", headers_format)
-        worksheet.write('E3', "תעודת זהות", headers_format)
-        worksheet.write('F3', "רישיון נהיגה", headers_format)
-        worksheet.write('G3', "החזרת כרטיס", headers_format)
-
-        # Separating row
-        worksheet.write('A4', "", headers_format)
-        worksheet.write('B4', "", headers_format)
-        worksheet.write('C4', "", headers_format)
-        worksheet.write('D4', "", headers_format)
-        worksheet.write('E4', "", headers_format)
-        worksheet.write('F4', "", headers_format)
-        worksheet.write('G4', "", headers_format)
-
-        # Populate SI numbers
-        si_numbers_row_index = 5
-        for si_number in [*number_range]:
-            worksheet.write('A' + str(si_numbers_row_index), str(si_number), text_format)
-            if si_number in missing_numbers:
-                worksheet.write('B' + str(si_numbers_row_index), "", missing_format)
-                worksheet.write('C' + str(si_numbers_row_index), "", missing_format)
-                worksheet.write('D' + str(si_numbers_row_index), "", missing_format)
-                worksheet.write('E' + str(si_numbers_row_index), "", missing_format)
-                worksheet.write('F' + str(si_numbers_row_index), "", missing_format)
-                worksheet.write('G' + str(si_numbers_row_index), "", missing_format)
-            else:
-                worksheet.write('B' + str(si_numbers_row_index), "", text_format)
-                worksheet.write('C' + str(si_numbers_row_index), "", text_format)
-                worksheet.write('D' + str(si_numbers_row_index), "", text_format)
-                worksheet.write('E' + str(si_numbers_row_index), "", text_format)
-                worksheet.write('F' + str(si_numbers_row_index), "", text_format)
-                worksheet.write('G' + str(si_numbers_row_index), "", text_format)
-                for render in renders_list:
-                    if render[6] == str(si_number):
-                        worksheet.write('B' + str(si_numbers_row_index), str(render[0]), text_format)
-                        worksheet.write('C' + str(si_numbers_row_index), str(render[1]), text_format)
-                        worksheet.write('D' + str(si_numbers_row_index), str(render[15]), text_format)
-                        worksheet.write('E' + str(si_numbers_row_index), "", text_format)
-                        worksheet.write('F' + str(si_numbers_row_index), "", text_format)
-                        worksheet.write('G' + str(si_numbers_row_index), "", text_format)
-            si_numbers_row_index += 1
+        worksheet = _create_si_rental_worksheet(excel_workbook, "מזוודה " + str(index), [*number_range], missing_numbers, renders_list)
         worksheets_list.append(worksheet)
         index += 1
+    if additional_si_cards:
+        worksheet = _create_si_rental_worksheet(excel_workbook, "כרטיסים נוספים", additional_si_cards, [], renders_list)
+        worksheets_list.append(worksheet)
     return worksheets_list
+
 
 def populate_start_list_worksheets(excel_workbook, registration_file_list):
     headers_format = excel_workbook.add_format({
@@ -467,16 +518,19 @@ def generate_lapcombat_html_file_from_iof_xml(uploaded_results_file, directory):
 @competition.route('/generate-preperation-files', methods=['POST'])
 def generate_preperation_files():
     if request.method == 'POST':
-        platform = request.form['platform']
-        uploaded_startlist_file = request.files["startlistFile"]
+        platform = request.form.get('platform')
+        uploaded_startlist_file = request.files.get("startlistFile")
         si_boxes_range_starts = request.form.getlist("rangeStart[]")
         si_boxes_range_endings = request.form.getlist("rangeEnd[]")
         missing_si_card_numbers_in_boxes = request.form.getlist("missingCards[]")
+        additional_si_card_numbers = request.form.get("additionalSiCards")
         # Validate user input
-        if platform not in ['mulka', 'si-droid']:
-            abort(400)
+        if not platform or platform not in ['mulka', 'si-droid']:
+            abort(400, "Platform must be selected (Mulka or SI-DROID).")
+        if not uploaded_startlist_file or uploaded_startlist_file.filename == '':
+            abort(400, "Startlist file is required.")
         startlist_file = validate_startlist_files_user_input(uploaded_startlist_file)
-        si_boxes_ranges, missing_si_card_numbers, available_si_card_numbers_for_rent = validate_si_rent_data_user_input(si_boxes_range_starts, si_boxes_range_endings, missing_si_card_numbers_in_boxes)
+        si_boxes_ranges, missing_si_card_numbers, available_si_card_numbers_for_rent, additional_si_card_numbers_list = validate_si_rent_data_user_input(si_boxes_range_starts, si_boxes_range_endings, missing_si_card_numbers_in_boxes, additional_si_card_numbers)
         with tempfile.TemporaryDirectory() as tmpdir:
             startlist_list = read_startlist_file_to_list(startlist_file)
             if len(available_si_card_numbers_for_rent) > 0:
@@ -484,7 +538,7 @@ def generate_preperation_files():
                 si_renders_list = allocate_si_cards(startlist_list, available_si_card_numbers_for_rent)
                 # Write SI rental list
                 si_rental_workbook = xlsxwriter.Workbook(os.path.join(tmpdir,'השאלת_כרטיסי_SI.xlsx'))
-                populate_si_rental_worksheets(si_rental_workbook, si_boxes_ranges, missing_si_card_numbers, si_renders_list)
+                populate_si_rental_worksheets(si_rental_workbook, si_boxes_ranges, missing_si_card_numbers, si_renders_list, additional_si_card_numbers_list)
                 si_rental_workbook.close()
 
             # Write exceptional list
